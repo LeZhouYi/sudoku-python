@@ -17,6 +17,6 @@ mainCanvas = tk.Canvas(mainWindow,width=windowWidth,height=windowHeight)
 mainCanvas.config(background="white")
 mainCanvas.pack()
 
-window_render.drawLine(mainCanvas,"black",3,10,10,500,True)
+window_render.drawChessboard(mainCanvas,"black",windowWidth,5,3,1)
 
 mainWindow.mainloop() #显示窗口
