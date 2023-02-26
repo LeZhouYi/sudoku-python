@@ -43,7 +43,27 @@ def drawChessboard(canvas:tk.Canvas,color:str,size:int,align:int,mainWidth:int,p
     for i in range(4):
         drawLine(canvas,color,mainWidth,align,align+areaLength*i,length=lineLength,isVertical=False)
         drawLine(canvas,color,mainWidth,align+areaLength*i,align,length=lineLength,isVertical=True)
+    #格线绘制
     for i in range(10):
         if i%3!=0:
             drawLine(canvas,color,partWidth,align,align+latticeLength*i,length=lineLength,isVertical=False)
             drawLine(canvas,color,partWidth,align+latticeLength*i,align,length=lineLength,isVertical=True)
+    #可选数界面
+    for i in range(2):
+        drawLine(canvas,color,mainWidth,size+align,align+areaLength*i,length=areaLength,isVertical=False)
+        drawLine(canvas,color,mainWidth,size+align+areaLength*i,align,length=areaLength,isVertical=True)
+    for i in range(4):
+        if i%3!=0:
+            drawLine(canvas,color,partWidth,size+align,align+latticeLength*i,length=areaLength,isVertical=False)
+            drawLine(canvas,color,partWidth,size+align+latticeLength*i,align,length=areaLength,isVertical=True)
+
+numberChoiseBuff = None
+def renderNumberChoice(canvas:tk.Canvas,pointList:list,number:list,offset:int):
+    '''
+    渲染可选数
+    '''
+    offsetClean = offset-2
+    for i  in range(9):
+        point = pointList[i]
+        if i <len(number):
+            canvas.create_rectangle(point[0]-offsetClean,point[1]-offsetClean,point[0]+offsetClean,point[1]+offsetClean,fill="pink",width=0)
