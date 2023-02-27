@@ -10,9 +10,15 @@ windowTitle = "Soduku @Skily_leyu"
 choiceStartX = mainCanvasSize+canvasAlign #可选数画布起始x坐标
 choiceStartY = canvasAlign #可选数画布起始y坐标
 
-ColorCanvasBg = "white" #主要画布背景颜色
+colorCanvasBg = "white" #主要画布背景颜色
 colorMainLine = "black" #宫线颜色
 colorPartLine = "black" #格子颜色
+colorSelectBg = "papayawhip" #被选中格子背景颜色
+colorSelectLine = "brown" #被选中格子线颜色
+colorFont = "black" #字体颜色
+colorFontUnable = "gray" #不可用字体颜色
+
+fontNumber = ("Purisa",20) #数字字体设置
 
 lineMainWidth = 3 #宫线宽
 linePartWidth = 1 #格线宽

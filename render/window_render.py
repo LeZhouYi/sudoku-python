@@ -1,5 +1,6 @@
 import tkinter as tk
 from config import config as cfg
+from config import data as dt
 from core import sudoku_core as sd
 
 def centerWindow(window:tk.Tk,width:int,height:int):
@@ -46,29 +47,27 @@ def drawChessboard(canvas:tk.Canvas):
         drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.choiceStartX+cfg.areaLength*i,cfg.choiceStartY,length=cfg.areaLength,isVertical=True)
     for i in range(4):
         if i%3!=0:
-            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX,cfg.choiceStartY+cfg.areaLength*i,length=cfg.areaLength,isVertical=False)
-            drawLine(canvas,cfg.colorPartLine,cfg.lineMainWidth,cfg.choiceStartX+cfg.areaLength*i,cfg.choiceStartY,length=cfg.areaLength,isVertical=True)
+            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX,cfg.choiceStartY+cfg.latticeLength*i,length=cfg.areaLength,isVertical=False)
+            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX+cfg.latticeLength*i,cfg.choiceStartY,length=cfg.areaLength,isVertical=True)
 
-def renderNumberChoice(canvas:tk.Canvas,pointList:list,number:list,offset:int):
+def renderNumberChoice(canvas:tk.Canvas,number:list[int]):
     '''
     渲染可选数
     '''
-    offsetClean = offset-2
+    offsetClean = cfg.latticeOffset-2
     for i  in range(9):
-        point = pointList[i]
-        canvas.create_rectangle(point[0]-offsetClean,point[1]-offsetClean,point[0]+offsetClean,point[1]+offsetClean,fill="white",width=0)
+        point = dt.numberChoicePoints[i]
+        canvas.create_rectangle(point[0]-offsetClean,point[1]-offsetClean,point[0]+offsetClean,point[1]+offsetClean,fill=cfg.colorCanvasBg,width=0)
         if number[i]!=0:
-            canvas.create_text(point[0],point[1],text=str(i+1),fill="black",font=("Purisa",30))
+            canvas.create_text(point[0],point[1],text=str(i+1),fill=cfg.colorFont,font=cfg.fontNumber)
         else:
-            canvas.create_text(point[0],point[1],text=str(i+1),fill="white",font=("Purisa",30))
+            canvas.create_text(point[0],point[1],text=str(i+1),fill=cfg.colorFontUnable,font=cfg.fontNumber)
 
-def renderLatticeSelect(canvas:tk.Canvas,size:int,align:int,mainWidth:int,lattice:sd.Lattice):
+def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
     渲染格子被选中效果
     '''
-    lineLength = size-2*align #线长
-    latticeLength = round(lineLength/9) #格子间距
-    startX = align+lattice.getRowIndex()*latticeLength
-    startY = align+lattice.getCloumnIndex()*latticeLength
-    canvas.create_rectangle(startX,startY,startX+latticeLength,startY+latticeLength,fill="papayawhip",outline="brown",width=3)
+    startX = cfg.canvasAlign+lattice.getCloumnIndex()*cfg.latticeLength
+    startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
+    canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorSelectBg,outline=cfg.colorSelectLine,width=cfg.lineMainWidth)
     #TODO：渲染数字
