@@ -71,3 +71,23 @@ def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
     canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorSelectBg,outline=cfg.colorSelectLine,width=cfg.lineMainWidth)
     #TODO：渲染数字
+
+def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
+    '''
+    清除选中效果
+    '''
+    widthList = [cfg.lineMainWidth,cfg.linePartWidth]
+    colorList = [cfg.colorMainLine,cfg.colorPartLine]
+    for index in indexs:
+        lattice = sudoku.getLatticeByIndex(index)
+        if lattice==None:
+            continue
+        startX = cfg.canvasAlign+lattice.getCloumnIndex()*cfg.latticeLength
+        startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
+        canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorCanvasBg,outline=cfg.colorCanvasBg,width=cfg.lineMainWidth)
+        paintMethod = lattice.getPaintMethod()
+        canvas.create_line(startX-1,startY,startX+cfg.latticeLength+1,startY,fill=colorList[paintMethod[0]],width=widthList[paintMethod[0]])
+        canvas.create_line(startX-1,startY+cfg.latticeLength,startX+cfg.latticeLength+1,startY+cfg.latticeLength,fill=colorList[paintMethod[1]],width=widthList[paintMethod[1]])
+        canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+1,fill=colorList[paintMethod[2]],width=widthList[paintMethod[2]])
+        canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+1,fill=colorList[paintMethod[3]],width=widthList[paintMethod[3]])
+        #TODO：渲染数字

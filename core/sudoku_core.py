@@ -1,3 +1,4 @@
+import types
 from config import data as dt
 from config import config as cfg
 
@@ -27,17 +28,12 @@ class Lattice(object):
         self.rowIndex = int(latticeIndex/9) #第几行[0-8]
         self.coloumnIndex = round(latticeIndex%9) #第几列[0-8]
 
-    def getPointX(self)->int:
-        '''
-        返回格子的横坐标
-        '''
-        return self.centerX
-
-    def getPointY(self)->int:
-        '''
-        返回格子的纵坐标
-        '''
-        return self.centerY
+    def getPaintMethod(self)->list[int]:
+        #0代表画粗，1代表画细
+        methods = [[0,1],[1,1],[1,0]]
+        paintMethod = methods[self.rowIndex%3]
+        paintMethod.extend(methods[self.coloumnIndex%3])
+        return paintMethod
 
     def isMatch(self,pointX:int,pointY:int)->bool:
         '''
@@ -83,14 +79,7 @@ class Sudoku(object):
                 return lattice
         return None
 
-    def getCenterOffset(self)->int:
-        '''
-        格子半宽
-        '''
-        return self.centerOffset
-
-    def getLatticeLength(self)->int:
-        '''
-        格子宽
-        '''
-        return self.latticeLength
+    def getLatticeByIndex(self,index:int)->Lattice|None:
+        if index>=0 and index <81:
+            return self.numberMatrix[index]
+        return None

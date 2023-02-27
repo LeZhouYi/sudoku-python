@@ -1,3 +1,4 @@
+import copy
 import tkinter as tk
 
 from config import config as cfg
@@ -46,15 +47,18 @@ def eventAdaptor(fun, **kwds):
     return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
 
 def mouseLeftClick(event,frame:SudokuFrame,sudoku:sd.Sudoku):
-    lattice = sudoku.getLatticeByPoint(pointX=event.x,pointY=event.y)
-    if lattice!=None:
-        #清除其它格子选中效果
-        dt.selectIndexs = [lattice.latticeIndex]#单选会取消其它格子选中效果
-        #渲染选中效果
-        wr.renderLatticeSelect(frame.mainCanvas,lattice=lattice)
-        #渲染可选数
-        wr.renderNumberChoice(frame.mainCanvas,lattice.alternativeNumbers)
-        return
-    # index = dt.isMatchNumberChoise(pointX=event.x,pointY=event.y)
-    # if index!=None:
-    #     print(index)
+    if event.x<=cfg.mainCanvasSize:
+        lattice = sudoku.getLatticeByPoint(pointX=event.x,pointY=event.y)
+        if lattice!=None:
+            #清除其它格子选中效果
+            wr.clearLatticeSelect(frame.mainCanvas,copy.deepcopy(dt.selectIndexs),sudoku)
+            dt.selectIndexs = [lattice.latticeIndex]#单选会取消其它格子选中效果
+            #渲染选中效果
+            wr.renderLatticeSelect(frame.mainCanvas,lattice=lattice)
+            #渲染可选数
+            wr.renderNumberChoice(frame.mainCanvas,lattice.alternativeNumbers)
+            return
+    if event.y<=cfg.canvasAlign+cfg.areaLength:
+        index = dt.isMatchNumberChoise(pointX=event.x,pointY=event.y)
+        if index!=None:
+            print(index)
