@@ -10,7 +10,7 @@ STATUS_EXIST_2 = 5 #已填入数字但与其它数字冲突，对应状态=2转�
 class Lattice(object):
 
     displayNumber = 0 #展示的数字
-    alternativeNumbers = [1,2,3,4,5,6,7,8,9] #可选择的数字
+    alternativeNumbers = [1,2,3,4,5,6,7,8,9] #可选择的数字,若该数字不可选，则为0
     status = STATUS_EMPTY #表示当前格子的状态
     isSelected = False #表示当前格子是否被选中
 
@@ -48,6 +48,11 @@ class Lattice(object):
         diffX = pointX-self.centerX
         diffY = pointY-self.centerY
         return diffX>=-offset and diffX<=offset and diffY>=-offset and diffY <=offset
+
+    def getRowIndex(self)->int:
+        return self.rowIndex
+    def getCloumnIndex(self)->int:
+        return self.coloumnIndex
 
 '''
 数独整体数据结构

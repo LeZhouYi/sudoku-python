@@ -1,5 +1,6 @@
 import tkinter as tk
 
+from config import config as cfg
 from render import window_render as wr
 from core import sudoku_core as sd
 
@@ -9,34 +10,20 @@ class SudokuFrame(object):
 
         self.mainWindow = tk.Tk()
 
-        #基本参数
-        self.mainCanvasWidth = 550
-        self.mainCanvasHeight = 550
-        self.windowWidth = self.mainCanvasWidth+195
-        self.canvasAlign = 5
-
         #基本配置
-        self.mainWindow.title("Soduku @Skily_leyu")
-        wr.centerWindow(self.mainWindow,self.windowWidth,self.mainCanvasHeight)
+        self.mainWindow.title(cfg.windowTitle)
+        wr.centerWindow(self.mainWindow,cfg.windowWidth,cfg.windowHeight)
 
         #组件
-        self.mainCanvas = tk.Canvas(self.mainWindow,width=self.windowWidth,height=self.mainCanvasHeight)#主画布
-        self.mainCanvas.config(background="white")
+        self.mainCanvas = tk.Canvas(self.mainWindow,width=cfg.windowWidth,height=cfg.windowHeight)#主画布
+        self.mainCanvas.config(background=cfg.ColorCanvasBg)
         self.mainCanvas.pack()
 
         #数据
         self.sudoku = sd.Sudoku(size=self.mainCanvasWidth,align=self.canvasAlign)
-        self.numberChoicePoint = [] #设置可选数的点击范围
-        self.baseX = self.mainCanvasWidth+self.canvasAlign#可选起始位置
-        self.baseY = self.canvasAlign #可选起始位置
-        self.centerOffset = self.sudoku.getCenterOffset()
-        for c in range(3):
-            for r in range(3):
-                self.numberChoicePoint.append([self.baseX+self.centerOffset+self.sudoku.getLatticeLength()*r,
-                                        self.baseY+self.centerOffset+self.sudoku.getLatticeLength()*c])
 
         #渲染
-        wr.drawChessboard(self.mainCanvas,"black",self.mainCanvasWidth,self.canvasAlign,3,1)
+        wr.drawChessboard(self.mainCanvas)
 
         #按键事件
         #鼠标左键
@@ -74,6 +61,10 @@ def eventAdaptor(fun, **kwds):
 def mouseLeftClick(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     lattice = sudoku.getLatticeByPoint(pointX=event.x,pointY=event.y)
     if lattice!=None:
+        #清除其它格子选中效果:
+        frame.selectIndexs = [lattice.latticeIndex]#单选会取消其它格子选中效果
+        #渲染选中效果
+        wr.renderLatticeSelect(frame.mainCanvas,frame.mainCanvasWidth,frame.canvasAlign,3,lattice=lattice)
         #渲染可选数
         wr.renderNumberChoice(frame.mainCanvas,frame.numberChoicePoint,lattice.alternativeNumbers,frame.centerOffset)
         return
