@@ -16,7 +16,6 @@ class Lattice(object):
     displayNumber = 0 #展示的数字
     alternativeNumbers = [1,2,3,4,5,6,7,8,9] #可选择的数字,若该数字不可选，则为0
     status = STATUS_EMPTY #表示当前格子的状态
-    isSelected = False #表示当前格子是否被选中
 
     def __init__(self,latticeIndex:int) -> None:
         '''
@@ -51,6 +50,19 @@ class Lattice(object):
     def getCloumnIndex(self)->int:
         return self.coloumnIndex
 
+    def getLatticeIndex(self)->int:
+        return self.latticeIndex
+
+    def setDisplay(self,value:int):
+        if self.status != STATUS_BLOCKED and self.status!= STATUS_EXIST_2:
+            self.displayNumber = value #设置显示的数字
+            self.alternativeNumbers = [0,0,0,0,0,0,0,0,0] #清空可选数
+            #TODO:更新当前格子状态，如正常/错误等
+            #TODO:如错误，执行错误的渲染
+
+    def getDisplayNumber(self)->int:
+        return self.displayNumber
+
 '''
 数独整体数据结构
 '''
@@ -83,3 +95,10 @@ class Sudoku(object):
         if index>=0 and index <81:
             return self.numberMatrix[index]
         return None
+
+    def setLatticeDisplay(self,index:int,value:int):
+        '''
+        将value写入第index个格子
+        '''
+        if index>=0 and index < 81:
+            self.numberMatrix[index].setDisplay(value)

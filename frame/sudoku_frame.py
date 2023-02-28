@@ -59,6 +59,12 @@ def mouseLeftClick(event,frame:SudokuFrame,sudoku:sd.Sudoku):
             wr.renderNumberChoice(frame.mainCanvas,lattice.alternativeNumbers)
             return
     if event.y<=cfg.canvasAlign+cfg.areaLength:
-        index = dt.isMatchNumberChoise(pointX=event.x,pointY=event.y)
-        if index!=None:
-            print(index)
+        indexNumber = dt.isMatchNumberChoise(pointX=event.x,pointY=event.y)
+        if indexNumber!=None and len(dt.selectIndexs)>0:
+            #填写数字进选中的格子
+            for selectIndex in dt.selectIndexs:
+                sudoku.setLatticeDisplay(selectIndex,indexNumber+1)
+                #渲染选中效果
+                lattice = sudoku.getLatticeByIndex(selectIndex)
+                wr.renderLatticeSelect(frame.mainCanvas,lattice=lattice)
+        #TODO:渲染可选数点击效果

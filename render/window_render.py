@@ -63,6 +63,15 @@ def renderNumberChoice(canvas:tk.Canvas,number:list[int]):
         else:
             canvas.create_text(point[0],point[1],text=str(i+1),fill=cfg.colorFontUnable,font=cfg.fontNumber)
 
+def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
+    '''
+    渲染数字
+    '''
+    number = lattice.getDisplayNumber()
+    if number!=0:
+        point = dt.latticePoints[lattice.getLatticeIndex()]
+        canvas.create_text(point[0],point[1],text=str(number),fill=cfg.colorFont,font=cfg.fontNumber)
+
 def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
     渲染格子被选中效果
@@ -70,7 +79,8 @@ def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     startX = cfg.canvasAlign+lattice.getCloumnIndex()*cfg.latticeLength
     startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
     canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorSelectBg,outline=cfg.colorSelectLine,width=cfg.lineMainWidth)
-    #TODO：渲染数字
+    #渲染数字
+    renderDisplayNumber(canvas,lattice)
 
 def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
     '''
@@ -90,4 +100,5 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
         canvas.create_line(startX-1,startY+cfg.latticeLength,startX+cfg.latticeLength+1,startY+cfg.latticeLength,fill=colorList[paintMethod[1]],width=widthList[paintMethod[1]])
         canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+1,fill=colorList[paintMethod[2]],width=widthList[paintMethod[2]])
         canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+1,fill=colorList[paintMethod[3]],width=widthList[paintMethod[3]])
-        #TODO：渲染数字
+        #渲染数字
+        renderDisplayNumber(canvas,lattice)
