@@ -1,7 +1,12 @@
+import threading
 from config import config as cfg
 
 #整个数独执行过程用到的公共变量
+selectLock = threading.Lock()
 selectIndexs = [] #当前选中的格子
+
+widthList = [cfg.lineMainWidth,cfg.linePartWidth] #用于选择绘线宽度
+colorList = [cfg.colorMainLine,cfg.colorPartLine] #用于选择绘线颜色
 
 latticePoints = [] #设置格子的点击范围
 for mColumn in range(9):

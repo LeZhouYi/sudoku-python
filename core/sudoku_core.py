@@ -1,4 +1,4 @@
-import types
+import threading
 from config import data as dt
 from config import config as cfg
 
@@ -26,6 +26,7 @@ class Lattice(object):
         self.latticeIndex = latticeIndex #第几个格子
         self.rowIndex = int(latticeIndex/9) #第几行[0-8]
         self.coloumnIndex = round(latticeIndex%9) #第几列[0-8]
+        self.lock = threading.Lock()
 
     def getPaintMethod(self)->list[int]:
         #0代表画粗，1代表画细
@@ -53,10 +54,17 @@ class Lattice(object):
     def getLatticeIndex(self)->int:
         return self.latticeIndex
 
+    def getAlternativeNumbers(self)->list[int]:
+        return self.alternativeNumbers
+
+    def isBlocked(self)->bool:
+        return self.status==STATUS_BLOCKED or self.status==STATUS_EXIST_2
+
     def setDisplay(self,value:int):
         if self.status != STATUS_BLOCKED and self.status!= STATUS_EXIST_2:
-            self.displayNumber = value #设置显示的数字
-            self.alternativeNumbers = [0,0,0,0,0,0,0,0,0] #清空可选数
+            with self.lock:
+                self.displayNumber = value #设置显示的数字
+                self.alternativeNumbers = [0,0,0,0,0,0,0,0,0] #清空可选数
             #TODO:更新当前格子状态，如正常/错误等
             #TODO:如错误，执行错误的渲染
 

@@ -16,6 +16,7 @@ colorPartLine = "black" #格子颜色
 colorSelectBg = "papayawhip" #被选中格子背景颜色
 colorSelectLine = "brown" #被选中格子线颜色
 colorFont = "black" #字体颜色
+colorFontSelect = "brown" #字体被选中时颜色
 colorFontUnable = "gray" #不可用字体颜色
 
 fontNumber = ("Purisa",20) #数字字体设置
@@ -28,3 +29,5 @@ areaLength = round(lineLength/3) #宫间距
 
 latticeLength = round((mainCanvasSize-2*canvasAlign)/9) #格子宽
 latticeOffset = round(latticeLength/2) #半个格子宽
+
+timeClick = 0.1 #点击效果显示时间

@@ -1,4 +1,5 @@
 import copy
+import threading
 import tkinter as tk
 
 from config import config as cfg
@@ -28,8 +29,7 @@ class SudokuFrame(object):
         wr.drawChessboard(self.mainCanvas)
 
         #按键事件
-        #鼠标左键
-        self.mainWindow.bind("<Button-1>",eventAdaptor(mouseLeftClick,frame=self,sudoku=self.sudoku))
+        self.mainWindow.bind("<ButtonPress-1>",eventAdaptor(mouseLeftClick,frame=self,sudoku=self.sudoku))#鼠标左键
 
         self.mainWindow.mainloop() #显示窗口
 
@@ -47,24 +47,50 @@ def eventAdaptor(fun, **kwds):
     return lambda event, fun=fun, kwds=kwds: fun(event, **kwds)
 
 def mouseLeftClick(event,frame:SudokuFrame,sudoku:sd.Sudoku):
+    '''
+    鼠标左键点击事件
+    '''
     if event.x<=cfg.mainCanvasSize:
-        lattice = sudoku.getLatticeByPoint(pointX=event.x,pointY=event.y)
-        if lattice!=None:
-            #清除其它格子选中效果
-            wr.clearLatticeSelect(frame.mainCanvas,copy.deepcopy(dt.selectIndexs),sudoku)
-            dt.selectIndexs = [lattice.latticeIndex]#单选会取消其它格子选中效果
-            #渲染选中效果
-            wr.renderLatticeSelect(frame.mainCanvas,lattice=lattice)
-            #渲染可选数
-            wr.renderNumberChoice(frame.mainCanvas,lattice.alternativeNumbers)
-            return
+        clickLattice(event,frame,sudoku) #点击在格子区域
     if event.y<=cfg.canvasAlign+cfg.areaLength:
-        indexNumber = dt.isMatchNumberChoise(pointX=event.x,pointY=event.y)
-        if indexNumber!=None and len(dt.selectIndexs)>0:
-            #填写数字进选中的格子
-            for selectIndex in dt.selectIndexs:
-                sudoku.setLatticeDisplay(selectIndex,indexNumber+1)
-                #渲染选中效果
-                lattice = sudoku.getLatticeByIndex(selectIndex)
-                wr.renderLatticeSelect(frame.mainCanvas,lattice=lattice)
-        #TODO:渲染可选数点击效果
+        clickChoice(event,frame,sudoku) #点击在可选数区域
+
+def clickLattice(event,frame:SudokuFrame,sudoku:sd.Sudoku):
+    '''
+    点击格子事件
+    '''
+    lattice = sudoku.getLatticeByPoint(pointX=event.x,pointY=event.y)
+    if lattice!=None:
+        #清除其它格子选中效果
+        wr.clearLatticeSelect(frame.mainCanvas,copy.deepcopy(dt.selectIndexs),sudoku)
+        with dt.selectLock:
+            dt.selectIndexs = [lattice.latticeIndex]#单选会取消其它格子选中效果
+        #渲染选中效果
+        wr.renderLatticeSelect(frame.mainCanvas,lattice=lattice)
+        #渲染可选数
+        wr.renderNumberChoice(frame.mainCanvas,lattice.getAlternativeNumbers(),lattice.isBlocked())
+
+def clickChoice(event,frame:SudokuFrame,sudoku:sd.Sudoku):
+    '''
+    点击可选数事件
+    '''
+    indexNumber = dt.isMatchNumberChoise(pointX=event.x,pointY=event.y)
+    if indexNumber!=None and len(dt.selectIndexs)>0:
+        #填写数字进选中的格子
+        for selectIndex in dt.selectIndexs:
+            sudoku.setLatticeDisplay(selectIndex,indexNumber+1)
+            #渲染选中效果
+            lattice = sudoku.getLatticeByIndex(selectIndex)
+            threading.Thread(target=wr.renderLatticeSelect,args=[frame.mainCanvas,lattice],daemon=False).start()
+        threading.Thread(target=clickChoiceRender,args=[frame,sudoku,indexNumber],daemon=False).start()
+
+def clickChoiceRender(frame:SudokuFrame,sudoku:sd.Sudoku,indexNumber:int):
+    '''
+    点击可选数区域的渲染流程
+    '''
+    #渲染可选数点击效果
+    wr.renderChoiceClick(frame.mainCanvas,indexNumber)
+    #更新可选数
+    lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
+    if lattice!=None:
+        wr.renderNumberChoice(frame.mainCanvas,lattice.getAlternativeNumbers(),lattice.isBlocked())

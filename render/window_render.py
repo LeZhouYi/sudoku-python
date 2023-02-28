@@ -1,4 +1,5 @@
 import tkinter as tk
+from time import sleep
 from config import config as cfg
 from config import data as dt
 from core import sudoku_core as sd
@@ -34,34 +35,59 @@ def drawChessboard(canvas:tk.Canvas):
     '''
     #宫线绘制
     for i in range(4):
-        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.canvasAlign,cfg.canvasAlign+cfg.areaLength*i,length=cfg.lineLength,isVertical=False)
-        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.canvasAlign+cfg.areaLength*i,cfg.canvasAlign,length=cfg.lineLength,isVertical=True)
+        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.canvasAlign-1,cfg.canvasAlign+cfg.areaLength*i,length=cfg.lineLength+2,isVertical=False)
+        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.canvasAlign+cfg.areaLength*i,cfg.canvasAlign-1,length=cfg.lineLength+2,isVertical=True)
     #格线绘制
     for i in range(10):
         if i%3!=0:
-            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.canvasAlign,cfg.canvasAlign+cfg.latticeLength*i,length=cfg.lineLength,isVertical=False)
-            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.canvasAlign+cfg.latticeLength*i,cfg.canvasAlign,length=cfg.lineLength,isVertical=True)
+            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.canvasAlign-1,cfg.canvasAlign+cfg.latticeLength*i,length=cfg.lineLength+2,isVertical=False)
+            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.canvasAlign+cfg.latticeLength*i,cfg.canvasAlign-1,length=cfg.lineLength+2,isVertical=True)
     #可选数界面
     for i in range(2):
-        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.choiceStartX,cfg.choiceStartY+cfg.areaLength*i,length=cfg.areaLength,isVertical=False)
-        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.choiceStartX+cfg.areaLength*i,cfg.choiceStartY,length=cfg.areaLength,isVertical=True)
+        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.choiceStartX-1,cfg.choiceStartY+cfg.areaLength*i,length=cfg.areaLength+2,isVertical=False)
+        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.choiceStartX+cfg.areaLength*i,cfg.choiceStartY-1,length=cfg.areaLength+2,isVertical=True)
     for i in range(4):
         if i%3!=0:
-            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX,cfg.choiceStartY+cfg.latticeLength*i,length=cfg.areaLength,isVertical=False)
-            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX+cfg.latticeLength*i,cfg.choiceStartY,length=cfg.areaLength,isVertical=True)
+            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX-1,cfg.choiceStartY+cfg.latticeLength*i,length=cfg.areaLength+2,isVertical=False)
+            drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX+cfg.latticeLength*i,cfg.choiceStartY-1,length=cfg.areaLength+2,isVertical=True)
 
-def renderNumberChoice(canvas:tk.Canvas,number:list[int]):
+def renderNumberChoice(canvas:tk.Canvas,number:list[int],isBlocked:bool):
     '''
     渲染可选数
     '''
     offsetClean = cfg.latticeOffset-2
+    color = cfg.colorFontUnable if isBlocked else cfg.colorFont
     for i  in range(9):
         point = dt.numberChoicePoints[i]
         canvas.create_rectangle(point[0]-offsetClean,point[1]-offsetClean,point[0]+offsetClean,point[1]+offsetClean,fill=cfg.colorCanvasBg,width=0)
         if number[i]!=0:
-            canvas.create_text(point[0],point[1],text=str(i+1),fill=cfg.colorFont,font=cfg.fontNumber)
+            canvas.create_text(point[0],point[1],text=str(i+1),fill=color,font=cfg.fontNumber)
         else:
             canvas.create_text(point[0],point[1],text=str(i+1),fill=cfg.colorFontUnable,font=cfg.fontNumber)
+
+def renderChoiceClick(canvas:tk.Canvas,index:int):
+    '''
+    渲染可选数控件被点击的效果
+    '''
+    #渲染格子、背景
+    rowIndex,cloumnIndex = int(index/3),index%3
+    startX = cfg.choiceStartX+cloumnIndex*cfg.latticeLength
+    startY = cfg.choiceStartY+rowIndex*cfg.latticeLength
+    canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorSelectBg,width=cfg.lineMainWidth,outline=cfg.colorSelectLine)
+    #渲染数字
+    point = dt.numberChoicePoints[index]
+    canvas.create_text(point[0],point[1],text=str(index+1),fill=cfg.colorFontSelect,font=cfg.fontNumber)
+    sleep(cfg.timeClick)
+    #复原
+    paintMethods = [[0,1],[1,1],[1,0]]
+    paintMethod = paintMethods[rowIndex]
+    paintMethod.extend(paintMethods[cloumnIndex])
+    canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorCanvasBg)
+    canvas.create_line(startX-1,startY,startX+cfg.latticeLength+2,startY,fill=dt.colorList[paintMethod[0]],width=dt.widthList[paintMethod[0]])
+    canvas.create_line(startX-1,startY+cfg.latticeLength,startX+cfg.latticeLength+2,startY+cfg.latticeLength,fill=dt.colorList[paintMethod[1]],width=dt.widthList[paintMethod[1]])
+    canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[2]],width=dt.widthList[paintMethod[2]])
+    canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[3]],width=dt.widthList[paintMethod[3]])
+    canvas.create_text(point[0],point[1],text=str(index+1),fill=cfg.colorFont,font=cfg.fontNumber)
 
 def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
@@ -86,8 +112,6 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
     '''
     清除选中效果
     '''
-    widthList = [cfg.lineMainWidth,cfg.linePartWidth]
-    colorList = [cfg.colorMainLine,cfg.colorPartLine]
     for index in indexs:
         lattice = sudoku.getLatticeByIndex(index)
         if lattice==None:
@@ -96,9 +120,9 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
         startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
         canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorCanvasBg,outline=cfg.colorCanvasBg,width=cfg.lineMainWidth)
         paintMethod = lattice.getPaintMethod()
-        canvas.create_line(startX-1,startY,startX+cfg.latticeLength+1,startY,fill=colorList[paintMethod[0]],width=widthList[paintMethod[0]])
-        canvas.create_line(startX-1,startY+cfg.latticeLength,startX+cfg.latticeLength+1,startY+cfg.latticeLength,fill=colorList[paintMethod[1]],width=widthList[paintMethod[1]])
-        canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+1,fill=colorList[paintMethod[2]],width=widthList[paintMethod[2]])
-        canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+1,fill=colorList[paintMethod[3]],width=widthList[paintMethod[3]])
+        canvas.create_line(startX-1,startY,startX+cfg.latticeLength+2,startY,fill=dt.colorList[paintMethod[0]],width=dt.widthList[paintMethod[0]])
+        canvas.create_line(startX-1,startY+cfg.latticeLength,startX+cfg.latticeLength+2,startY+cfg.latticeLength,fill=dt.colorList[paintMethod[1]],width=dt.widthList[paintMethod[1]])
+        canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[2]],width=dt.widthList[paintMethod[2]])
+        canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[3]],width=dt.widthList[paintMethod[3]])
         #渲染数字
         renderDisplayNumber(canvas,lattice)
