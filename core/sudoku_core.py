@@ -60,16 +60,63 @@ class Lattice(object):
     def isBlocked(self)->bool:
         return self.status==STATUS_BLOCKED or self.status==STATUS_EXIST_2
 
+    def canBlocked(self)->bool:
+        return self.status==STATUS_WRITTEN or self.status==STATUS_EXIST_1
+
+    def canClear(self)->bool:
+        return self.status==STATUS_WRITTEN or self.status==STATUS_EXIST_1
+
+    def isWritten(self)->bool:
+        return self.status==STATUS_WRITTEN or self.status==STATUS_BLOCKED
+
+    def setBlock(self):
+        if self.status==STATUS_WRITTEN:
+            with self.lock:
+                self.status = STATUS_BLOCKED
+        elif self.status==STATUS_EXIST_1:
+            with self.lock:
+                self.status = STATUS_EXIST_2
+
+    def setUnlock(self):
+        if self.status==STATUS_EXIST_2:
+            with self.lock:
+                self.status = STATUS_EXIST_1
+        elif self.status==STATUS_BLOCKED:
+            with self.lock:
+                self.status = STATUS_WRITTEN
+
+    def clearDisplay(self):
+        if self.canClear():
+            with self.lock:
+                self.displayNumber=0
+                self.alternativeNumbers=[1,2,3,4,5,6,7,8,9]
+                self.status=STATUS_EMPTY
+
     def setDisplay(self,value:int):
-        if self.status != STATUS_BLOCKED and self.status!= STATUS_EXIST_2:
+        if not self.isBlocked():
             with self.lock:
                 self.displayNumber = value #设置显示的数字
                 self.alternativeNumbers = [0,0,0,0,0,0,0,0,0] #清空可选数
-            #TODO:更新当前格子状态，如正常/错误等
+                #TODO:更新当前格子状态，如正常/错误等
+                self.status = STATUS_WRITTEN
             #TODO:如错误，执行错误的渲染
 
     def getDisplayNumber(self)->int:
         return self.displayNumber
+
+    def clearChoiceByList(self,existNumbers=list[int]):
+        '''
+        清除可选数
+        '''
+        with self.lock:
+            for i in range(9):
+                if self.displayNumber!=0:
+                    self.alternativeNumbers[i]=0
+                elif i+1 in existNumbers:
+                    self.alternativeNumbers[i]=0
+                else:
+                    self.alternativeNumbers[i]=i+1
+            print(self.alternativeNumbers)
 
 '''
 数独整体数据结构
@@ -110,3 +157,19 @@ class Sudoku(object):
         '''
         if index>=0 and index < 81:
             self.numberMatrix[index].setDisplay(value)
+
+    def inferRowChoice(self,rowIndex:int):
+        '''
+        行可选数推测
+        '''
+        existNumbers = []
+        #获取已填数列表，排除被标记为错误的
+        for i in range(9):
+            lattice = self.getLatticeByIndex(rowIndex*9+i)
+            if lattice!=None and lattice.isWritten():
+                existNumbers.append(lattice.getDisplayNumber())
+        #根据已填数列表排除可选数
+        for i in range(9):
+            lattice = self.getLatticeByIndex(rowIndex*9+i)
+            if lattice!=None:
+                lattice.clearChoiceByList(existNumbers)

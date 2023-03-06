@@ -18,8 +18,10 @@ colorSelectLine = "brown" #被选中格子线颜色
 colorFont = "black" #字体颜色
 colorFontSelect = "brown" #字体被选中时颜色
 colorFontUnable = "gray" #不可用字体颜色
+colorFontBlock = "gray" #被锁定字体颜色
 
 fontNumber = ("Purisa",20) #数字字体设置
+fontCtrl = ("Purisa",16) #文本字体设置
 
 lineMainWidth = 3 #宫线宽
 linePartWidth = 1 #格线宽
@@ -31,3 +33,20 @@ latticeLength = round((mainCanvasSize-2*canvasAlign)/9) #格子宽
 latticeOffset = round(latticeLength/2) #半个格子宽
 
 timeClick = 0.1 #点击效果显示时间
+
+ctrlStartX = choiceStartX #操作键起始X坐标
+ctrlStartY = canvasAlign*2+areaLength+6 #操作键起始Y坐标
+ctrlLength = round(areaLength/2) #操作键宽度
+ctrlHeight = latticeLength-2 #操作键高度
+ctrlFloorAmout = 6 #操作键总层数
+ctrlOffsetX = round(ctrlLength/2) #中心距离X
+ctrlOffsetY = round(ctrlHeight/2) #中心距离Y
+
+textBlocked = "锁定"
+textUnLock = "解锁"
+textClear = "擦除"
+textInfer = "推测"
+
+ctrlBlockedIndex = 0 #锁定、解锁键下标
+ctrlClearIndex =1 #擦除
+ctrlInferIndex = 2 #推测

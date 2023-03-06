@@ -50,20 +50,37 @@ def drawChessboard(canvas:tk.Canvas):
         if i%3!=0:
             drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX-1,cfg.choiceStartY+cfg.latticeLength*i,length=cfg.areaLength+2,isVertical=False)
             drawLine(canvas,cfg.colorPartLine,cfg.linePartWidth,cfg.choiceStartX+cfg.latticeLength*i,cfg.choiceStartY-1,length=cfg.areaLength+2,isVertical=True)
+    #控件界面
+    for i  in range(3):
+        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.ctrlStartX+i*cfg.ctrlLength,cfg.ctrlStartY-1,cfg.ctrlHeight*cfg.ctrlFloorAmout+2,isVertical=True)
+    for i in range(cfg.ctrlFloorAmout+1):
+        drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.ctrlStartX-1,cfg.ctrlStartY+i*cfg.ctrlHeight,cfg.areaLength+2,isVertical=False)
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlBlockedIndex][0],dt.ctrlPoints[cfg.ctrlBlockedIndex][1],text=cfg.textBlocked,fill=cfg.colorFont,font=cfg.fontCtrl)
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlClearIndex][0],dt.ctrlPoints[cfg.ctrlClearIndex][1],text=cfg.textClear,fill=cfg.colorFontUnable,font=cfg.fontCtrl)
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlInferIndex][0],dt.ctrlPoints[cfg.ctrlInferIndex][1],text=cfg.textInfer,fill=cfg.colorFont,font=cfg.fontCtrl)
 
 def renderNumberChoice(canvas:tk.Canvas,number:list[int],isBlocked:bool):
     '''
     渲染可选数
     '''
-    offsetClean = cfg.latticeOffset-2
+    # offsetClean = cfg.latticeOffset-2
     color = cfg.colorFontUnable if isBlocked else cfg.colorFont
     for i  in range(9):
         point = dt.numberChoicePoints[i]
-        canvas.create_rectangle(point[0]-offsetClean,point[1]-offsetClean,point[0]+offsetClean,point[1]+offsetClean,fill=cfg.colorCanvasBg,width=0)
+        # canvas.create_rectangle(point[0]-offsetClean,point[1]-offsetClean,point[0]+offsetClean,point[1]+offsetClean,fill=cfg.colorCanvasBg,width=0)
         if number[i]!=0:
             canvas.create_text(point[0],point[1],text=str(i+1),fill=color,font=cfg.fontNumber)
         else:
             canvas.create_text(point[0],point[1],text=str(i+1),fill=cfg.colorFontUnable,font=cfg.fontNumber)
+
+def renderCtrlClick(canvas:tk.Canvas,index:int):
+    '''
+    渲染操作键被点击的效果
+    '''
+    startX = cfg.ctrlStartX+cfg.ctrlLength*(index%2)
+    startY = cfg.ctrlStartY+cfg.ctrlHeight*int(index/2)
+    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorSelectBg,width=cfg.lineMainWidth,outline=cfg.colorSelectLine)
+    sleep(cfg.timeClick)
 
 def renderChoiceClick(canvas:tk.Canvas,index:int):
     '''
@@ -87,7 +104,7 @@ def renderChoiceClick(canvas:tk.Canvas,index:int):
     canvas.create_line(startX-1,startY+cfg.latticeLength,startX+cfg.latticeLength+2,startY+cfg.latticeLength,fill=dt.colorList[paintMethod[1]],width=dt.widthList[paintMethod[1]])
     canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[2]],width=dt.widthList[paintMethod[2]])
     canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[3]],width=dt.widthList[paintMethod[3]])
-    canvas.create_text(point[0],point[1],text=str(index+1),fill=cfg.colorFont,font=cfg.fontNumber)
+    # canvas.create_text(point[0],point[1],text=str(index+1),fill=cfg.colorFont,font=cfg.fontNumber)
 
 def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
@@ -96,7 +113,8 @@ def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     number = lattice.getDisplayNumber()
     if number!=0:
         point = dt.latticePoints[lattice.getLatticeIndex()]
-        canvas.create_text(point[0],point[1],text=str(number),fill=cfg.colorFont,font=cfg.fontNumber)
+        color = cfg.colorFontBlock if lattice.isBlocked() else cfg.colorFont
+        canvas.create_text(point[0],point[1],text=str(number),fill=color,font=cfg.fontNumber)
 
 def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
@@ -126,3 +144,34 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
         canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+2,fill=dt.colorList[paintMethod[3]],width=dt.widthList[paintMethod[3]])
         #渲染数字
         renderDisplayNumber(canvas,lattice)
+
+def renderCtrlBlock(canvas:tk.Canvas,isBlocked:bool,canBlock:bool):
+    '''
+    渲染锁定、解锁操作键
+    '''
+    startX= cfg.ctrlStartX
+    startY = cfg.ctrlStartY
+    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
+    text = cfg.textUnLock if isBlocked else cfg.textBlocked
+    textColor = cfg.colorFont if canBlock or isBlocked else cfg.colorFontUnable
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlBlockedIndex][0],dt.ctrlPoints[cfg.ctrlBlockedIndex][1],text=text,fill=textColor,font=cfg.fontCtrl)
+
+def renderCtrlClear(canvas:tk.Canvas,canClear:bool):
+    '''
+    渲染擦除键
+    '''
+    startX= cfg.ctrlStartX+cfg.ctrlLength
+    startY = cfg.ctrlStartY
+    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
+    textColor = cfg.colorFont if canClear else cfg.colorFontUnable
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlClearIndex][0],dt.ctrlPoints[cfg.ctrlClearIndex][1],text=cfg.textClear,fill=textColor,font=cfg.fontCtrl)
+
+def renderCtrlInfer(canvas:tk.Canvas):
+    '''
+    渲染推测键
+    '''
+    startX= cfg.ctrlStartX
+    startY = cfg.ctrlStartY+cfg.ctrlHeight
+    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
+    textColor = cfg.colorFont if not dt.isRunInfer else cfg.colorFontUnable
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlInferIndex][0],dt.ctrlPoints[cfg.ctrlInferIndex][1],text=cfg.textInfer,fill=textColor,font=cfg.fontCtrl)
