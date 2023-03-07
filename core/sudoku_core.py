@@ -13,10 +13,6 @@ STATUS_EXIST_2 = 5 #已填入数字但与其它数字冲突，对应状态=2转�
 '''
 class Lattice(object):
 
-    displayNumber = 0 #展示的数字
-    alternativeNumbers = [1,2,3,4,5,6,7,8,9] #可选择的数字,若该数字不可选，则为0
-    status = STATUS_EMPTY #表示当前格子的状态
-
     def __init__(self,latticeIndex:int) -> None:
         '''
         centerX #格子相对画布所处位置的中心的X坐标
@@ -27,6 +23,9 @@ class Lattice(object):
         self.rowIndex = int(latticeIndex/9) #第几行[0-8]
         self.coloumnIndex = round(latticeIndex%9) #第几列[0-8]
         self.lock = threading.Lock()
+        self.alternativeNumbers = [1,2,3,4,5,6,7,8,9] #可选择的数字,若该数字不可选，则为0
+        self.displayNumber = 0 #展示的数字
+        self.status = STATUS_EMPTY #表示当前格子的状态
 
     def getPaintMethod(self)->list[int]:
         #0代表画粗，1代表画细
@@ -114,9 +113,6 @@ class Lattice(object):
                     self.alternativeNumbers[i]=0
                 elif i+1 in existNumbers:
                     self.alternativeNumbers[i]=0
-                else:
-                    self.alternativeNumbers[i]=i+1
-            print(self.alternativeNumbers)
 
 '''
 数独整体数据结构
@@ -170,6 +166,36 @@ class Sudoku(object):
                 existNumbers.append(lattice.getDisplayNumber())
         #根据已填数列表排除可选数
         for i in range(9):
-            lattice = self.getLatticeByIndex(rowIndex*9+i)
-            if lattice!=None:
-                lattice.clearChoiceByList(existNumbers)
+            self.numberMatrix[rowIndex*9+i].clearChoiceByList(existNumbers)
+
+    def inferColumnChoice(self,cloumnIndex:int):
+        '''
+        列可选数推测
+        '''
+        existNumbers = []
+        #获取已填数列表，排除被标记为错误的
+        for i in range(9):
+            lattice = self.getLatticeByIndex(cloumnIndex+i*9)
+            if lattice!=None and lattice.isWritten():
+                existNumbers.append(lattice.getDisplayNumber())
+        #根据已填数列表排除可选数
+        for i in range(9):
+            self.numberMatrix[cloumnIndex+i*9].clearChoiceByList(existNumbers)
+
+    def inferAreaChoice(self,areaIndex:int):
+        '''
+        宫可选数推测
+        '''
+        existNumbers = []
+        startRow = int(areaIndex/3)
+        startColumn = int(areaIndex%3)
+        for r in range(3):
+            for c in range(3):
+                index = (startRow+r)*9+(startColumn+c)
+                lattice = self.getLatticeByIndex(index)
+                if lattice!=None and lattice.isWritten():
+                    existNumbers.append(lattice.getDisplayNumber())
+        for r in range(3):
+            for c in range(3):
+                index = (startRow+r)*9+(startColumn+c)
+                self.numberMatrix[index].clearChoiceByList(existNumbers)

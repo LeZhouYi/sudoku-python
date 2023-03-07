@@ -146,11 +146,12 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
     推测
     '''
-    for rowIndex in range(9):
-        sudoku.inferRowChoice(rowIndex)
+    for index in range(9):
+        sudoku.inferRowChoice(index)
+        sudoku.inferColumnChoice(index)
+        sudoku.inferAreaChoice(index)
     with dt.isRunInferLock:
         dt.isRunInfer=False
-    reRenderCtrl(frame,sudoku)
 
 ##-----------------------------Render----------------------------------###
 def paintCtrlClick(frame:SudokuFrame,sudoku:sd.Sudoku,ctrlIndex:int):

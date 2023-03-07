@@ -8,6 +8,9 @@ selectIndexs = [] #当前选中的格子
 isRunInfer = False #当前是否在执行推断
 isRunInferLock = threading.Lock()
 
+isShowChoice = True #是否显示可选数
+isShowChoiceLock = threading.Lock()
+
 widthList = [cfg.lineMainWidth,cfg.linePartWidth] #用于选择绘线宽度
 colorList = [cfg.colorMainLine,cfg.colorPartLine] #用于选择绘线颜色
 

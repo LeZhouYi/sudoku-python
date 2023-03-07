@@ -19,9 +19,11 @@ colorFont = "black" #字体颜色
 colorFontSelect = "brown" #字体被选中时颜色
 colorFontUnable = "gray" #不可用字体颜色
 colorFontBlock = "gray" #被锁定字体颜色
+colorFontInfo = "gray" #格子提示的数字颜色
 
 fontNumber = ("Purisa",20) #数字字体设置
 fontCtrl = ("Purisa",16) #文本字体设置
+fontInfo = ("Purisa",10) #格子提示数字字体
 
 lineMainWidth = 3 #宫线宽
 linePartWidth = 1 #格线宽
@@ -50,3 +52,6 @@ textInfer = "推测"
 ctrlBlockedIndex = 0 #锁定、解锁键下标
 ctrlClearIndex =1 #擦除
 ctrlInferIndex = 2 #推测
+
+infoOffset = 0
+infoLength = int((latticeLength-2*infoOffset)/3)
