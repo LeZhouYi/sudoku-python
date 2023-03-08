@@ -58,6 +58,7 @@ def drawChessboard(canvas:tk.Canvas):
     canvas.create_text(dt.ctrlPoints[cfg.ctrlBlockedIndex][0],dt.ctrlPoints[cfg.ctrlBlockedIndex][1],text=cfg.textBlocked,fill=cfg.colorFont,font=cfg.fontCtrl)
     canvas.create_text(dt.ctrlPoints[cfg.ctrlClearIndex][0],dt.ctrlPoints[cfg.ctrlClearIndex][1],text=cfg.textClear,fill=cfg.colorFontUnable,font=cfg.fontCtrl)
     canvas.create_text(dt.ctrlPoints[cfg.ctrlInferIndex][0],dt.ctrlPoints[cfg.ctrlInferIndex][1],text=cfg.textInfer,fill=cfg.colorFont,font=cfg.fontCtrl)
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlInfoIndex][0],dt.ctrlPoints[cfg.ctrlInfoIndex][1],text=cfg.textInfo,fill=cfg.colorFont,font=cfg.fontCtrl)
 
 def renderNumberChoice(canvas:tk.Canvas,number:list[int],isBlocked:bool):
     '''
@@ -115,10 +116,13 @@ def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     if number!=0:
         color = cfg.colorFontBlock if lattice.isBlocked() else cfg.colorFont
         canvas.create_text(point[0],point[1],text=str(number),fill=color,font=cfg.fontNumber)
+    if not dt.isInfo:
+        return #不显示提示
+    #显示提示
     numberChoices = lattice.getAlternativeNumbers()
-    for r in range(3):
-        for c in range(3):
-            index = r*3+c
+    for c in range(3):
+        for r in range(3):
+            index = c*3+r
             if numberChoices[index]!=0:
                 canvas.create_text(point[0]+cfg.infoOffset+cfg.infoLength*(r-1),point[1]+cfg.infoOffset+cfg.infoLength*(c-1),text=numberChoices[index],font=cfg.fontInfo,fill=cfg.colorFontInfo)
 
@@ -126,7 +130,7 @@ def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
     渲染格子被选中效果
     '''
-    startX = cfg.canvasAlign+lattice.getCloumnIndex()*cfg.latticeLength
+    startX = cfg.canvasAlign+lattice.getColumnIndex()*cfg.latticeLength
     startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
     canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorSelectBg,outline=cfg.colorSelectLine,width=cfg.lineMainWidth)
     #渲染数字
@@ -140,7 +144,7 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
         lattice = sudoku.getLatticeByIndex(index)
         if lattice==None:
             continue
-        startX = cfg.canvasAlign+lattice.getCloumnIndex()*cfg.latticeLength
+        startX = cfg.canvasAlign+lattice.getColumnIndex()*cfg.latticeLength
         startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
         canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorCanvasBg,outline=cfg.colorCanvasBg,width=cfg.lineMainWidth)
         paintMethod = lattice.getPaintMethod()
@@ -181,3 +185,13 @@ def renderCtrlInfer(canvas:tk.Canvas):
     canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
     textColor = cfg.colorFont if not dt.isRunInfer else cfg.colorFontUnable
     canvas.create_text(dt.ctrlPoints[cfg.ctrlInferIndex][0],dt.ctrlPoints[cfg.ctrlInferIndex][1],text=cfg.textInfer,fill=textColor,font=cfg.fontCtrl)
+
+def renderCtrlInfo(canvas:tk.Canvas):
+    '''
+    渲染提示键
+    '''
+    startX= cfg.ctrlStartX+cfg.ctrlLength
+    startY = cfg.ctrlStartY+cfg.ctrlHeight
+    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
+    textColor = cfg.colorFont
+    canvas.create_text(dt.ctrlPoints[cfg.ctrlInfoIndex][0],dt.ctrlPoints[cfg.ctrlInfoIndex][1],text=cfg.textInfo,fill=textColor,font=cfg.fontCtrl)

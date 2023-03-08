@@ -21,7 +21,7 @@ class Lattice(object):
         '''
         self.latticeIndex = latticeIndex #第几个格子
         self.rowIndex = int(latticeIndex/9) #第几行[0-8]
-        self.coloumnIndex = round(latticeIndex%9) #第几列[0-8]
+        self.columnIndex = round(latticeIndex%9) #第几列[0-8]
         self.lock = threading.Lock()
         self.alternativeNumbers = [1,2,3,4,5,6,7,8,9] #可选择的数字,若该数字不可选，则为0
         self.displayNumber = 0 #展示的数字
@@ -31,7 +31,7 @@ class Lattice(object):
         #0代表画粗，1代表画细
         methods = [[0,1],[1,1],[1,0]]
         paintMethod = methods[self.rowIndex%3]
-        paintMethod.extend(methods[self.coloumnIndex%3])
+        paintMethod.extend(methods[self.columnIndex%3])
         return paintMethod
 
     def isMatch(self,pointX:int,pointY:int)->bool:
@@ -47,8 +47,8 @@ class Lattice(object):
 
     def getRowIndex(self)->int:
         return self.rowIndex
-    def getCloumnIndex(self)->int:
-        return self.coloumnIndex
+    def getColumnIndex(self)->int:
+        return self.columnIndex
 
     def getLatticeIndex(self)->int:
         return self.latticeIndex
@@ -99,6 +99,12 @@ class Lattice(object):
                 #TODO:更新当前格子状态，如正常/错误等
                 self.status = STATUS_WRITTEN
             #TODO:如错误，执行错误的渲染
+
+    def backChoiceNumber(self,number:int):
+        if number>=1 and number<=9:
+            if self.status==STATUS_EMPTY or self.status==STATUS_EMPTY_CHOICE:
+                with self.lock:
+                    self.alternativeNumbers[number-1]=number
 
     def getDisplayNumber(self)->int:
         return self.displayNumber
@@ -154,6 +160,23 @@ class Sudoku(object):
         if index>=0 and index < 81:
             self.numberMatrix[index].setDisplay(value)
 
+    def clearLattice(self,index:int):
+        if index>=0 and index<81:
+            lattice = self.numberMatrix[index]
+            if lattice.canClear():
+                number = lattice.getDisplayNumber()
+                rowIndex = lattice.getRowIndex()
+                cloumnIndex = lattice.getColumnIndex()
+                self.numberMatrix[index].clearDisplay()
+                for i in range(9):
+                    self.numberMatrix[rowIndex*9+i].backChoiceNumber(number)
+                    self.numberMatrix[i*9+cloumnIndex].backChoiceNumber(number)
+                startRow = int(rowIndex/3)*3
+                startColumn = int(cloumnIndex/3)*3
+                for r in range(3):
+                    for c in range(3):
+                        self.numberMatrix[(startRow+r)*9+(startColumn+c)].backChoiceNumber(number)
+
     def inferRowChoice(self,rowIndex:int):
         '''
         行可选数推测
@@ -191,11 +214,11 @@ class Sudoku(object):
         startColumn = int(areaIndex%3)
         for r in range(3):
             for c in range(3):
-                index = (startRow+r)*9+(startColumn+c)
+                index = (startRow*3+r)*9+(startColumn*3+c)
                 lattice = self.getLatticeByIndex(index)
                 if lattice!=None and lattice.isWritten():
                     existNumbers.append(lattice.getDisplayNumber())
         for r in range(3):
             for c in range(3):
-                index = (startRow+r)*9+(startColumn+c)
+                index = (startRow*3+r)*9+(startColumn*3+c)
                 self.numberMatrix[index].clearChoiceByList(existNumbers)

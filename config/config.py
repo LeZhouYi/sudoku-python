@@ -48,10 +48,12 @@ textBlocked = "锁定"
 textUnLock = "解锁"
 textClear = "擦除"
 textInfer = "推测"
+textInfo = "提示"
 
 ctrlBlockedIndex = 0 #锁定、解锁键下标
 ctrlClearIndex =1 #擦除
 ctrlInferIndex = 2 #推测
+ctrlInfoIndex = 3 #提示
 
 infoOffset = 0
 infoLength = int((latticeLength-2*infoOffset)/3)
