@@ -119,6 +119,14 @@ class Lattice(object):
                     self.alternativeNumbers[i]=0
                 elif i+1 in existNumbers:
                     self.alternativeNumbers[i]=0
+    def clearChoiceByNumber(self,number:int):
+        '''
+        清空该数外的可选数
+        '''
+        if number>=1 and number<=9 and self.displayNumber==0:
+            with self.lock:
+                self.alternativeNumbers=[0,0,0,0,0,0,0,0,0]
+                self.alternativeNumbers[number-1]=number
 
 '''
 数独整体数据结构
@@ -222,3 +230,41 @@ class Sudoku(object):
             for c in range(3):
                 index = (startRow*3+r)*9+(startColumn*3+c)
                 self.numberMatrix[index].clearChoiceByList(existNumbers)
+
+    def inferLatticeChoice(self,areaIndex:int):
+        '''
+        若某一宫内某一个数只在某一格内可填，清空该格和宫外的可选数
+        '''
+        startRow = int(areaIndex/3)
+        startColumn = int(areaIndex%3)
+        choiceNumbers = [0,0,0,0,0,0,0,0,0] #记录唯一可填的数
+        choiceLattice = [-1,-1,-1,-1,-1,-1,-1,-1,-1] #记录唯一可填的数的格子的下标
+        for r in range(3):
+            for c in range(3):
+                index = (startRow*3+r)*9+(startColumn*3+c) #计算当天格子Index
+                lattice = self.getLatticeByIndex(index)
+                if lattice!=None:
+                    if lattice.isWritten(): #若有已填数，则该宫内不会有该可选数
+                        choiceLattice[lattice.getDisplayNumber()-1]=-1
+                    else:
+                        alternativeNumbers = lattice.getAlternativeNumbers()
+                        for numberIndex in range(9): #第一次标记，记录格子下标以后续跟踪
+                            if alternativeNumbers[numberIndex]==0:
+                                continue
+                            if choiceNumbers[numberIndex]!=alternativeNumbers[numberIndex]:
+                                choiceNumbers[numberIndex]=alternativeNumbers[numberIndex]
+                                choiceLattice[numberIndex]=lattice.getLatticeIndex()#记录格子下标
+                            else:
+                                choiceLattice[numberIndex]=-1
+        for i in range(9):
+            if choiceLattice[i]!=-1:
+                self.numberMatrix[choiceLattice[i]].clearChoiceByNumber(i+1) #清空该格子的其它数
+                column = self.numberMatrix[choiceLattice[i]].getColumnIndex() #获取格子的列数
+                row = self.numberMatrix[choiceLattice[i]].getRowIndex() #获取格子的行数
+                for teIndex in range(9): #清空该格子外的可选数
+                    rowLatticeIndex = row*9 + teIndex #计算行相关的格子下标
+                    columnLatticeIndex = teIndex*9 + column #计算列相关的格子下标
+                    if rowLatticeIndex!= choiceLattice[i]: #不处理当前格子
+                        self.numberMatrix[rowLatticeIndex].clearChoiceByList([i+1]) #只清楚当前可选数
+                    if columnLatticeIndex!=choiceLattice[i]: #不处理当前格子
+                        self.numberMatrix[columnLatticeIndex].clearChoiceByList([i+1])#只清楚当前可选数

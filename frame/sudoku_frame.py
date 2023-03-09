@@ -156,6 +156,7 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
         sudoku.inferRowChoice(index)
         sudoku.inferColumnChoice(index)
         sudoku.inferAreaChoice(index)
+        sudoku.inferLatticeChoice(index)
     with dt.isRunInferLock:
         dt.isRunInfer=False
 
