@@ -51,7 +51,6 @@ class SudokuFrame(object):
             0,0,1,0,8,0,3,0,0]
         for i in range(81):
             if chess[i]!=0:
-                print(chess[i])
                 self.sudoku.setLatticeDisplay(i,chess[i])
 
         self.mainWindow.mainloop() #显示窗口
@@ -171,6 +170,7 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
         sudoku.inferColumnChoice(index)
         sudoku.inferAreaChoice(index)
         sudoku.inferLatticeChoice(index)
+        sudoku.inferAreaExtra(index)
     with dt.isRunInferLock:
         dt.isRunInfer=False
 

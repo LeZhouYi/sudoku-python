@@ -239,31 +239,59 @@ class Sudoku(object):
 
     def inferRowChoice(self,rowIndex:int):
         '''
-        行可选数推测
+        1、行可选数推测，基础
+        2、若该行某一数只出现了一次，则清空该格的其它可选数
         '''
         existNumbers = []
+        choiceNumberCounts = [0 for i in range(9)]
         #获取已填数列表，排除被标记为错误的
         for i in range(9):
-            lattice = self.getLatticeByIndex(rowIndex*9+i)
+            latticeIndex = rowIndex*9+i
+            lattice = self.getLatticeByIndex(latticeIndex)
             if lattice!=None and lattice.isWritten():
                 existNumbers.append(lattice.getDisplayNumber())
+            elif lattice.getDisplayNumber()==0:
+                for choiceValue in lattice.getAlternativeNumbers():
+                    if choiceValue>0:
+                        choiceNumberCounts[choiceValue-1]+=1
         #根据已填数列表排除可选数
         for i in range(9):
-            self.numberMatrix[rowIndex*9+i].clearChoiceByList(existNumbers)
+            latticeIndex = rowIndex*9+i
+            self.numberMatrix[latticeIndex].clearChoiceByList(existNumbers)
+        for choiceIndex in range(9):
+            if choiceNumberCounts[choiceIndex]==1:
+                for i in range(9):
+                    latticeIndex = rowIndex*9+i
+                    if choiceIndex+1 in self.numberMatrix[latticeIndex].getAlternativeNumbers():
+                        self.numberMatrix[latticeIndex].clearChoiceByNumber(choiceIndex+1)
+                        break
 
     def inferColumnChoice(self,cloumnIndex:int):
         '''
-        列可选数推测
+        1、列可选数推测
+        2、若该列某一数只出现了一次，则清空该格的其它可选数
         '''
         existNumbers = []
+        choiceNumberCounts = [0 for i in range(9)]
         #获取已填数列表，排除被标记为错误的
         for i in range(9):
             lattice = self.getLatticeByIndex(cloumnIndex+i*9)
             if lattice!=None and lattice.isWritten():
                 existNumbers.append(lattice.getDisplayNumber())
+            elif lattice.getDisplayNumber()==0:
+                for choiceValue in lattice.getAlternativeNumbers():
+                    if choiceValue>0:
+                        choiceNumberCounts[choiceValue-1]+=1
         #根据已填数列表排除可选数
         for i in range(9):
             self.numberMatrix[cloumnIndex+i*9].clearChoiceByList(existNumbers)
+        for choiceIndex in range(9): #遍历所有的数的统计
+            if choiceNumberCounts[choiceIndex]==1: #唯一可填
+                for i in range(9):
+                    latticeIndex = i*9+cloumnIndex
+                    if choiceIndex+1 in self.numberMatrix[latticeIndex].getAlternativeNumbers():
+                        self.numberMatrix[latticeIndex].clearChoiceByNumber(choiceIndex+1)
+                        break
 
     def inferAreaChoice(self,areaIndex:int):
         '''
@@ -325,14 +353,6 @@ class Sudoku(object):
     def inferAreaExtra(self,areaIndex:int):
         '''
         1、若该宫内某一可选数只占一行/列时，对应行/列的其它宫的格子排除该可选数
-        2、若该宫内某一可选数只占两行/列时，且其它宫该可选数亦只占相同的两行/列时，则剩余的宫中剩余那行/列外的格子的该可选数排除
-        3、若该宫内2/3/4/5/6/7/8的格子的可选数<=2/3/4/5/6/7/8时，清除其它格子的该可选数
-        3a、若<=8,则最后一格为必填，会被推断出来而不用如此处理。若<=7，则剩作两格满足<=2的情况而不用如此处理。
-        3b、同理只需要处理<=4的情况，<=5/6/7会由<=4/3/2的情况推断出
-        3c、若处理<=2情况，只需要判定可填位置<=2的格子，同理<=3/4只需要判定<=3/4可填位置的格子
-        3d、判断<=2,则从所有<=2的数集中尽可能选所有的两两组合，判断是否位置<=2;其余同理
-        3e、选取组合的方法(假定为2):设位置集为array(length>=2)，从集中选任意一个，与剩余的两两组合。排除第一次选取的那个后，再取任意一个，与剩余的两两组合，直至集数=1或=0
-        3f、可用递归处理，或考虑非递法实现
         '''
         choiceCounts = [0 for i in range(9)] #记录某可选数的数量
         choicePoints = [[] for i in range(9)] #记录某可选数的坐标
@@ -354,13 +374,78 @@ class Sudoku(object):
         #Point1,Point
         for i in range(9):
             if choiceCounts[i]==2 or choiceCounts[i]==3:
-                pass
-                #检查是否在同一行/列
-                #清除行/列
-            elif choiceCounts[i]>=4 and choiceCounts[i]<=6:
-                #检查是否在同两行/列
-                #获取判断剩两宫并清除
-                pass
+                #检查是否在同一行
+                rowIndexCheck = self.isSameRow(choicePoints[i])
+                #清除行
+                if rowIndexCheck!=-1:
+                    for cloumnIndex in range(9):
+                        latticeIndex = rowIndexCheck*9+cloumnIndex
+                        if latticeIndex not in choicePoints[i]:
+                            self.numberMatrix[latticeIndex].clearChoiceByList([i+1])
+                #检查是否在同一列
+                columnIndexCheck = self.isSameColumn(choicePoints[i])
+                #清除列
+                if columnIndexCheck!=-1:
+                    for rowIndex in range(9):
+                        latticeIndex = rowIndex*9+columnIndexCheck
+                        if latticeIndex not in choicePoints[i]:
+                            self.numberMatrix[latticeIndex].clearChoiceByList([i+1])
+
+    def isSameRow(self,indexList:list[int])->int:
+        '''判断是否在同一行'''
+        if indexList==None or len(indexList)==0:
+            return -1
+        rowIndex = int(indexList[0]/9)
+        for index in indexList:
+            if rowIndex!=int(index/9):
+                return -1
+        return rowIndex
+
+    def isSameColumn(self,indexList:list[int])->int:
+        '''判断是否在同一列'''
+        if indexList==None or len(indexList)==0:
+            return -1
+        columnIndex = int(indexList[0]%9)
+        for index in indexList:
+            if columnIndex!=int(index%9):
+                return -1
+        return columnIndex
+
+    def isSameTwoRows(self,indexList:list[int])->list[int]:
+        '''判断是否在同两行'''
+        if indexList==None or len(indexList)==0:
+            return []
+        rowIndexs = []
+        for index in indexList:
+            rowIndex = int(index/9)
+            if rowIndex not in rowIndexs:
+                if len(rowIndexs)<=2:
+                    rowIndexs.append(rowIndex)
+                else:
+                    return []
+        return rowIndexs
+
+    def isSameTwoColumns(self,indexList:list[int])->list[int]:
+        '''判断是否在同两列'''
+        if indexList==None or len(indexList)==0:
+            return []
+        cloumnIndexs = []
+        for index in indexList:
+            columnIndex = int(index%9)
+            if columnIndex not in cloumnIndexs:
+                if len(cloumnIndexs)<=2:
+                    cloumnIndexs.append(columnIndex)
+                else:
+                    return []
+        return cloumnIndexs
+
+    def getOtherRowCloumn(self,indexList:list[int])->int:
+        '''获取其它行/列'''
+        if len(indexList)==2:
+            areaIndex = int(indexList[0]/3) #0,1,2
+            return (areaIndex*3+1)*3-indexList[0]-indexList[1]
+        else:
+            return -1
 
 def getCombination(numberList:list[int],combineCount:int)->list:
     '''
