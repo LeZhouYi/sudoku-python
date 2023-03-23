@@ -166,8 +166,8 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     推测
     '''
     for index in range(9):
-        sudoku.inferRowChoice(index)
-        sudoku.inferColumnChoice(index)
+        sudoku.inferLineChoice(index,isRow=True)
+        sudoku.inferLineChoice(index,isRow=False)
         sudoku.inferAreaChoice(index)
         sudoku.inferLatticeChoice(index)
         sudoku.inferAreaExtra(index)

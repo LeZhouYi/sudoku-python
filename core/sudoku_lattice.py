@@ -1,4 +1,3 @@
-import copy
 import threading
 from config import data as dt
 from config import config as cfg
@@ -28,6 +27,18 @@ class Lattice(object):
         self.alternativeNumbers = [i+1 for i in range(9)] #可选择的数字,若该数字不可选，则为0
         self.displayNumber = NUMBER_EMPTY #展示的数字
         self.status = STATUS_EMPTY #表示当前格子的状态
+
+    def getLatticPoint(self)->tuple:
+        '''
+        返回格子所在坐标
+        '''
+        return (self.rowIndex,self.columnIndex)
+
+    def getAreaIndex(self)->int:
+        '''
+        获取所在宫下标
+        '''
+        return self.areaIndex
 
     def getPaintMethod(self)->list[int]:
         '''
