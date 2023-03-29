@@ -111,7 +111,7 @@ def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
     渲染数字
     '''
-    number = lattice.getDisplayNumber()
+    number = lattice.getDisplay()
     point = dt.latticePoints[lattice.getLatticeIndex()]
     if number!=0:
         color = cfg.colorFontBlock if lattice.isBlocked() else cfg.colorFont
@@ -119,7 +119,7 @@ def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     if not dt.isInfo:
         return #不显示提示
     #显示提示
-    numberChoices = lattice.getAlternativeNumbers()
+    numberChoices = lattice.getChoiceNumbers()
     for c in range(3):
         for r in range(3):
             index = c*3+r

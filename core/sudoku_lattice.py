@@ -24,7 +24,7 @@ class Lattice(object):
         self.columnIndex = int(self.getLatticeIndex()%9) #第几列[0-8]
         self.areaIndex = int(self.getRowIndex()/3)*3+int(self.getColumnIndex()/3)#第几宫
         self.lock = threading.Lock()
-        self.alternativeNumbers = [i+1 for i in range(9)] #可选择的数字,若该数字不可选，则为0
+        self.choiceNumbers = [i+1 for i in range(9)] #可选择的数字,若该数字不可选，则为0
         self.displayNumber = NUMBER_EMPTY #展示的数字
         self.status = STATUS_EMPTY #表示当前格子的状态
 
@@ -61,18 +61,6 @@ class Lattice(object):
         diffY = pointY-dt.latticePoints[self.getLatticeIndex()][1]
         return diffX>=-cfg.latticeOffset and diffX<=cfg.latticeOffset and diffY>=-cfg.latticeOffset and diffY <=cfg.latticeOffset
 
-    def getStartAreaRow(self)->int:
-        '''
-        获得宫起始行坐标
-        '''
-        return int(self.getRowIndex()/3)*3 #计算宫起始行坐标
-
-    def getStartAreaColumn(self)->int:
-        '''
-        获得宫起始列坐标
-        '''
-        return int(self.getColumnIndex()/3)*3 #计算宫起始行坐标
-
     def getRowIndex(self)->int:
         '''
         返回格子的行数
@@ -91,11 +79,22 @@ class Lattice(object):
         '''
         return self.latticeIndex
 
-    def getAlternativeNumbers(self)->list[int]:
+    def getChoiceNumbers(self)->list[int]:
         '''
         返回格子当前的可选数
         '''
-        return self.alternativeNumbers
+        return self.choiceNumbers
+
+    def getValidChoices(self)->list[int]:
+        '''
+        返回格子当前可用的可选数
+        '''
+        choices = []
+        if not self.isWritten():
+            for choice in self.choiceNumbers:
+                if choice != NUMBER_EMPTY:
+                    choices.append(choice)
+        return choices
 
     def isBlocked(self)->bool:
         '''
@@ -153,44 +152,44 @@ class Lattice(object):
         擦除当前格子写入的数
         '''
         if self.canClear():
-            self.setDisplayNumber(NUMBER_EMPTY) #擦除
-            self.initAlternativeNumbers() #恢复可选数
+            self.setDisplay(NUMBER_EMPTY) #擦除
+            self.initChoices() #恢复可选数
             self.setStatus(STATUS_EMPTY) #更新状态
 
-    def initAlternativeNumbers(self):
+    def initChoices(self):
         '''
         初始化可选数
         '''
         with self.lock:
-            self.alternativeNumbers=[i+1 for i in range(9)]
+            self.choiceNumbers=[i+1 for i in range(9)]
 
-    def clearAlternativeNumbers(self):
+    def clearChoices(self):
         '''
         清空可选数
         '''
         with self.lock:
-            self.alternativeNumbers = [NUMBER_EMPTY for i in range(9)]
+            self.choiceNumbers = [NUMBER_EMPTY for i in range(9)]
 
-    def setDisplayNumber(self,displayNumber:int):
+    def setDisplay(self,displayNumber:int):
         '''
         为当前格子写入数字
         '''
         if not self.isBlocked():
             with self.lock:
                 self.displayNumber = displayNumber  #设置显示的数字
-            self.clearAlternativeNumbers() #清空可选数
+            self.clearChoices() #清空可选数
             self.setStatus(STATUS_WRITTEN) #更新状态
 
-    def backChoiceNumber(self,numberChoice:int):
+    def backChoice(self,numberChoice:int):
         '''
         将某个可选数添加回当前格子的可选数列表中
         '''
         if numberChoice>=1 and numberChoice<=9:
             if self.isStatusEqual(STATUS_EMPTY) or self.isStatusEqual(STATUS_EMPTY_CHOICE):
                 with self.lock:
-                    self.alternativeNumbers[numberChoice-1]=numberChoice
+                    self.choiceNumbers[numberChoice-1]=numberChoice
 
-    def getDisplayNumber(self)->int:
+    def getDisplay(self)->int:
         '''
         返回当前格子被写入的数
         '''
@@ -202,28 +201,36 @@ class Lattice(object):
         '''
         return self.displayNumber==NUMBER_EMPTY
 
-    def setAlternativeNumberEmpty(self,choiceIndex:int):
+    def setChoiceEmpty(self,choiceIndex:int):
         '''
         清除特定可选数
         '''
         assert choiceIndex>=0 and choiceIndex<9
         with self.lock:
-            self.alternativeNumbers[choiceIndex]=NUMBER_EMPTY
+            self.choiceNumbers[choiceIndex]=NUMBER_EMPTY
 
-    def clearChoiceByList(self,existNumbers=list[int]):
+    def clearChoiceByExists(self,existNumbers=list[int]):
         '''
         清除列表所述的可选数
         '''
         for choiceIndex in range(9):
             if not self.isDisplayEmpty():
-                self.setAlternativeNumberEmpty(choiceIndex)
+                self.setChoiceEmpty(choiceIndex)
             elif choiceIndex+1 in existNumbers:
-                self.setAlternativeNumberEmpty(choiceIndex)
+                self.setChoiceEmpty(choiceIndex)
 
     def clearChoiceByNumber(self,numberChoice:int):
         '''
         清空该数外的可选数
         '''
         if numberChoice>=1 and numberChoice<=9 and self.isDisplayEmpty():
-            self.clearAlternativeNumbers()
-            self.backChoiceNumber(numberChoice)
+            self.clearChoices()
+            self.backChoice(numberChoice)
+
+    def clearChoiceByIndexs(self,choiceIndexs:list[int]):
+        '''
+        根据下标清除不在choiceIndexs内的可选数
+        '''
+        for choiceIndex in range(9):
+            if choiceIndex not in choiceIndexs:
+                self.setChoiceEmpty(choiceIndex)

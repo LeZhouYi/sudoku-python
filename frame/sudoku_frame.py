@@ -40,18 +40,18 @@ class SudokuFrame(object):
         self.mainWindow.bind("<KeyPress-8>",eventAdaptor(clickNumber,frame=self,sudoku=self.sudoku,number=8))#按8
         self.mainWindow.bind("<KeyPress-9>",eventAdaptor(clickNumber,frame=self,sudoku=self.sudoku,number=9))#按9
 
-        chess = [0,0,2,0,9,0,7,0,0,
-            0,0,0,0,6,2,0,0,9,
-            0,6,0,0,0,0,0,0,3,
-            0,0,0,0,0,0,0,0,8,
-            8,9,5,0,2,0,6,1,4,
-            3,0,0,0,0,0,0,0,0,
-            7,0,0,0,0,0,0,5,0,
-            5,0,0,9,3,0,0,0,0,
-            0,0,1,0,8,0,3,0,0]
-        for i in range(81):
-            if chess[i]!=0:
-                self.sudoku.setLatticeDisplay(i,chess[i])
+        # chess = [0,0,2,0,9,0,7,0,0,
+        #     0,0,0,0,6,2,0,0,9,
+        #     0,6,0,0,0,0,0,0,3,
+        #     0,0,0,0,0,0,0,0,8,
+        #     8,9,5,0,2,0,6,1,4,
+        #     3,0,0,0,0,0,0,0,0,
+        #     7,0,0,0,0,0,0,5,0,
+        #     5,0,0,9,3,0,0,0,0,
+        #     0,0,1,0,8,0,3,0,0]
+        # for i in range(81):
+        #     if chess[i]!=0:
+        #         self.sudoku.setLatticeDisplay(i,chess[i])
 
         self.mainWindow.mainloop() #显示窗口
 
@@ -166,11 +166,17 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     推测
     '''
     for index in range(9):
-        sudoku.inferLineChoice(index,isRow=True)
-        sudoku.inferLineChoice(index,isRow=False)
-        sudoku.inferAreaChoice(index)
-        sudoku.inferLatticeChoice(index)
-        sudoku.inferAreaExtra(index)
+        sudoku.inferLineChoiceBase(index,isRow=True)
+        sudoku.inferLineChoiceBase(index,isRow=False)
+        sudoku.inferLineChoiceCombine(index,isRow=True)
+        sudoku.inferLineChoiceCombine(index,isRow=False)
+        sudoku.inferLineChoiceOnly(index,isRow=True)
+        sudoku.inferLineChoiceOnly(index,isRow=False)
+        sudoku.inferAreaChoiceBase(index)
+        sudoku.inferAreaChoiceLine(index,isRow=True)
+        sudoku.inferAreaChoiceLine(index,isRow=False)
+        sudoku.inferAreaChoiceOnly(index)
+        sudoku.inferAreaChoiceCombine(index)
     with dt.isRunInferLock:
         dt.isRunInfer=False
 
@@ -237,4 +243,4 @@ def reRenderNumberChoice(frame:SudokuFrame,sudoku:sd.Sudoku):
     if len(dt.selectIndexs)>0:
         lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
         if lattice!=None:
-            threading.Thread(target=wr.renderNumberChoice,args=[frame.mainCanvas,lattice.getAlternativeNumbers(),lattice.isBlocked()],daemon=False).start()
+            threading.Thread(target=wr.renderNumberChoice,args=[frame.mainCanvas,lattice.getChoiceNumbers(),lattice.isBlocked()],daemon=False).start()

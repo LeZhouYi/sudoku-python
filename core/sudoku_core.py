@@ -36,14 +36,14 @@ class Sudoku(object):
         '''
         返回当前下标对应的格子
         '''
-        assert latticeIndex>=0 and latticeIndex <81, {"错误":"下标不合法"}
+        assert isEqualOrIn(latticeIndex,0,80), {"错误":"下标不合法"}
         return self.numberMatrix[latticeIndex]
 
     def setLatticeDisplay(self,latticIndex:int,displayNumber:int):
         '''
         将value写入第index个格子
         '''
-        self.getLatticeByIndex(latticIndex).setDisplayNumber(displayNumber)
+        self.getLatticeByIndex(latticIndex).setDisplay(displayNumber)
 
     def clearLattice(self,latticIndex:int):
         '''
@@ -51,54 +51,74 @@ class Sudoku(object):
         '''
         lattice = self.getLatticeByIndex(latticIndex)
         if lattice.canClear():
-            displayNumber = lattice.getDisplayNumber()
+            displayNumber = lattice.getDisplay()
             latticeRow,latticeCloumn = lattice.getLatticPoint() #格子所在位置
             lattice.clearDisplay()#擦除
             for teIndex in range(9):
                 #遍历格子所在行/列，恢复当行/列的格子的可选数
-                self.getLattice(latticeRow,teIndex).backChoiceNumber(displayNumber)
-                self.getLattice(teIndex,latticeCloumn).backChoiceNumber(displayNumber)
-            areaRowStart,areaColumnStart = self.getAreaStartPoint(lattice.getAreaIndex()) #宫起始坐标
+                self.getLattice(latticeRow,teIndex).backChoice(displayNumber)
+                self.getLattice(teIndex,latticeCloumn).backChoice(displayNumber)
+            areaRowStart,areaColumnStart = getAreaStartPoint(lattice.getAreaIndex()) #宫起始坐标
             for teRow in range(3):
                 for teColumn in range(3):
                     #恢复该宫内格子的可选数
-                    self.getLattice(areaRowStart+teRow,areaColumnStart+teColumn).backChoiceNumber(displayNumber)
+                    self.getLattice(areaRowStart+teRow,areaColumnStart+teColumn).backChoice(displayNumber)
 
-    def inferLineChoice(self,lineIndex:int,isRow:bool):
+    def clearLineByIndex(self,lineIndex:int,choiceIndex:int,isRow:bool,extraIndexs:list[int]|int):
         '''
-        1、行/列可选数推测，基础
-        2、若该行/列某一数只出现了一次，则清空该格的其它可选数
+        清除某行/列格子的某可选数，不处理extraIndexs所在格子
         '''
-        existNumbers = self.getExistNumbersByLine(lineIndex,isRow=isRow)#获取已填数列表，排除被标记为错误的
+        for teIndex in range(9):
+            lattice = self.getLattice(lineIndex,teIndex) if isRow else self.getLattice(teIndex,lineIndex)
+            if (isinstance(extraIndexs,int) and lattice.getLatticeIndex()==extraIndexs) or lattice.getLatticeIndex() not in extraIndexs:
+                lattice.setChoiceEmpty(choiceIndex)
+
+    def clearLineByArea(self,lineIndex:int,choiceIndex:int,isRow:bool,extraAreas:list[int]|int):
+        '''
+        清除某行/列格子的某可选数，不处理extraIndexs所在宫的格子
+        '''
+        for teIndex in range(9):
+            lattice = self.getLattice(lineIndex,teIndex) if isRow else self.getLattice(teIndex,lineIndex)
+            if (isinstance(extraAreas,int) and lattice.getAreaIndex()==extraAreas) or lattice.getAreaIndex() not in extraAreas:
+                lattice.setChoiceEmpty(choiceIndex)
+
+    def inferLineChoiceBase(self,lineIndex:int,isRow:bool):
+        '''
+        行/列可选数推测，基础
+        '''
+        existNumbers = self.getExistsByLine(lineIndex,isRow=isRow)#获取已填数列表，排除被标记为错误的
         #根据已填数列表排除可选数
         for teIndex in range(9):
             if isRow:
-                self.getLattice(lineIndex,teIndex).clearChoiceByList(existNumbers)
+                self.getLattice(lineIndex,teIndex).clearChoiceByExists(existNumbers)
             else:
-                self.getLattice(teIndex,lineIndex).clearChoiceByList(existNumbers)
+                self.getLattice(teIndex,lineIndex).clearChoiceByExists(existNumbers)
 
-        choiceNumberCounts = self.countChoiceNumbersByLine(lineIndex,isRow=isRow)#统计当前行可选数的数量
+    def inferLineChoiceOnly(self,lineIndex:int,isRow:bool):
+        '''
+        若该行/列某一数只出现了一次，则清空该格的其它可选数
+        '''
+        choiceNumberCounts = self.countChoicesByLine(lineIndex,isRow=isRow)#统计当前行可选数的数量
         #若该行/列某一数只出现了一次，则清空该格的其它可选数
         for choiceIndex in range(9):
             if choiceNumberCounts[choiceIndex]==1:
                 self.findClearChoice(lineIndex,choiceIndex+1,isRow=isRow)
+
+    def inferLineChoiceCombine(self,lineIndex:int,isRow:bool):
+        '''
+        若该行/列某n个数只出现在n个格子，则清空那些格子那些数外的可选数
+        '''
         choicePoints = self.countChoicePointsByLine(lineIndex,isRow=isRow)
-        choiceIndexs = [] #记录有效数字
-        for choiceIndex in range(9):
-            choicePoint = choicePoints[choiceIndex]
-            if len(choicePoint)>=2 and len(choicePoint)<=4:
-                choiceIndexs.append(choiceIndex)
-        for combineCount in range(2,4+1):
+        choiceIndexs = getValidIndexs(choicePoints,2,4)
+        for combineCount in range(2,4+1): #遍历2到4个数组合的可能
             combineSet = getCombination(choiceIndexs,combineCount)
-            if combineSet!=None and len(combineSet)>=1:
-                for combineQueue in combineSet:
-                    if self.isCombineLattice(choicePoints,combineQueue): #满足组合条件
-                        combinePoint = choicePoints[combineQueue[0]] #获得组合的格子
-                        for latticeIndex in combinePoint:
-                            lattice = self.getLatticeByIndex(latticeIndex)
-                            for choiceIndex in range(9):
-                                if choiceIndex not in combineQueue:
-                                    lattice.setAlternativeNumberEmpty(choiceIndex)
+            if combineSet==None or len(combineSet)<1:
+                continue
+            for combineQueue in combineSet:
+                if self.isCombineLattice(choicePoints,combineQueue): #满足组合条件
+                    combinePoint = choicePoints[combineQueue[0]] #获得组合的格子
+                    for latticeIndex in combinePoint:
+                        self.getLatticeByIndex(latticeIndex).clearChoiceByIndexs(combineQueue)
 
     def isCombineLattice(self,choicePoints:list,combineQueue:list[int])->bool:
         '''
@@ -112,7 +132,7 @@ class Sudoku(object):
                     latticeIndexs.append(latticeIndex)
         return len(latticeIndexs)==combineCount
 
-    def countChoiceNumbersByLine(self,index:int,isRow:bool)->list[int]:
+    def countChoicesByLine(self,index:int,isRow:bool)->list[int]:
         '''
         统计某一行/列可选数的数量
         '''
@@ -120,12 +140,12 @@ class Sudoku(object):
         for teIndex in range(9):
             lattice = self.getLattice(index,teIndex) if isRow else self.getLattice(teIndex,index)
             if lattice.isDisplayEmpty():
-                for choiceNumber in lattice.getAlternativeNumbers():
+                for choiceNumber in lattice.getChoiceNumbers():
                     if choiceNumber!=NUMBER_EMPTY:
                         choiceNumberCounts[choiceNumber-1]+=1
         return choiceNumberCounts
 
-    def getExistNumbersByLine(self,index:int,isRow:bool)->list[int]:
+    def getExistsByLine(self,index:int,isRow:bool)->list[int]:
         '''
         获得某一行/列所有已填的数
         '''
@@ -133,7 +153,7 @@ class Sudoku(object):
         for teIndex in range(9):
             lattice = self.getLattice(index,teIndex) if isRow else self.getLattice(teIndex,index)
             if lattice.isWritten():
-                existNumbers.append(lattice.getDisplayNumber()) #记录已填
+                existNumbers.append(lattice.getDisplay()) #记录已填
         return existNumbers
 
     def findClearChoice(self,index:int,choiceNumber:int,isRow:bool):
@@ -143,55 +163,44 @@ class Sudoku(object):
         '''
         for teIndex in range(9):
             lattice = self.getLattice(index,teIndex) if isRow else self.getLattice(teIndex,index)
-            if choiceNumber in lattice.getAlternativeNumbers():
+            if choiceNumber in lattice.getChoiceNumbers():
                 lattice.clearChoiceByNumber(choiceNumber)
                 return
 
-    def getAreaStartPoint(self,areaIndex:int)->tuple:
-        '''
-        获得该宫的起始坐标
-        '''
-        return (int(areaIndex/3),int(areaIndex%3))
-
-    def getExistNumbersByArea(self,areaIndex:int)->list[int]:
+    def getExistsByArea(self,areaIndex:int)->list[int]:
         '''
         获得某一个宫内所有已填数
         '''
         existNumbers = [] #记录已存在的数字
-        areaRow,areaColumn = self.getAreaStartPoint(areaIndex) #宫起始坐标
+        areaRow,areaColumn = getAreaStartPoint(areaIndex) #宫起始坐标
         for teRow in range(3):
             for teColumn in range(3):
                 lattice = self.getLattice(areaRow*3+teRow,areaColumn*3+teColumn)
                 if lattice.isWritten():
-                    existNumbers.append(lattice.getDisplayNumber()) #记录已存在的数字
+                    existNumbers.append(lattice.getDisplay()) #记录已存在的数字
         return existNumbers
 
-    def inferAreaChoice(self,areaIndex:int):
+    def inferAreaChoiceBase(self,areaIndex:int):
         '''
         宫可选数推测
         若某一宫的某一个数已填，则剩余格子的可选数排除该数
         '''
-        existNumbers = self.getExistNumbersByArea(areaIndex) #记录已存在的数字
-        areaRow,areaColumn = self.getAreaStartPoint(areaIndex) #宫起始坐标
+        existNumbers = self.getExistsByArea(areaIndex) #记录已存在的数字
+        areaRow,areaColumn = getAreaStartPoint(areaIndex) #宫起始坐标
         for teRow in range(3):
             for teColumn in range(3):
-                self.getLattice(areaRow*3+teRow,areaColumn*3+teColumn).clearChoiceByList(existNumbers) #排除格子的可选数
+                self.getLattice(areaRow*3+teRow,areaColumn*3+teColumn).clearChoiceByExists(existNumbers) #排除格子的可选数
 
     def countChoicePointsByLine(self,lineIndex:int,isRow:bool)->list:
         '''
         统计行/列内可选数出现的位置
         '''
-        existNumbers = [] #记录已存在数
+        existNumbers = self.getExistsByLine(lineIndex,isRow=isRow)
         choicePoints = [[] for i in range(9)] #记录可选数坐标
         for teIndex in range(9):
             lattice = self.getLattice(lineIndex,teIndex) if isRow else self.getLattice(teIndex,lineIndex)
-            if lattice.isWritten():
-                    existNumbers.append(lattice.getDisplayNumber())
-            else:
-                alternativeNumbers = lattice.getAlternativeNumbers()
-                for choiceIndex in range(9):
-                    if alternativeNumbers[choiceIndex]!=NUMBER_EMPTY:
-                        choicePoints[choiceIndex].append(lattice.getLatticeIndex())#记录当前可选数的格子位置
+            for choiceNumber in lattice.getValidChoices():
+                choicePoints[choiceNumber-1].append(lattice.getLatticeIndex())#记录当前可选数的格子位置
         #清空已填写数的位置
         for number in existNumbers:
             if number!=NUMBER_EMPTY:
@@ -202,143 +211,136 @@ class Sudoku(object):
         '''
         统计宫内可选数出现的位置
         '''
-        existNumbers = [] #记录已存在数
+        existNumbers = self.getExistsByArea(areaIndex)
         choicePoints = [[] for i in range(9)] #记录可选数坐标
-        areaRow,areaColumn = self.getAreaStartPoint(areaIndex) #宫起始坐标
+        areaRow,areaColumn = getAreaStartPoint(areaIndex) #宫起始坐标
         for teRow in range(3):
             for teColumn in range(3):
                 lattice = self.getLattice(areaRow*3+teRow,areaColumn*3+teColumn)
-                if lattice.isWritten():
-                    existNumbers.append(lattice.getDisplayNumber())
-                else:
-                    alternativeNumbers = lattice.getAlternativeNumbers()
-                    for choiceIndex in range(9):
-                        if alternativeNumbers[choiceIndex]!=NUMBER_EMPTY:
-                            choicePoints[choiceIndex].append(lattice.getLatticeIndex())#记录当前可选数的格子位置
+                for choiceNumber in lattice.getValidChoices():
+                    choicePoints[choiceNumber-1].append(lattice.getLatticeIndex())#记录当前可选数的格子位置
         #清空已填写数的位置
         for number in existNumbers:
-            if number!=NUMBER_EMPTY:
-                choicePoints[number-1]=[]
+            choicePoints[number-1]=[]
         return choicePoints
 
-    def inferLatticeChoice(self,areaIndex:int):
+    def inferAreaChoiceOnly(self,areaIndex:int):
         '''
         若某一宫内某一个数只在某一格内可填，清空该格和宫外的可选数
         '''
         choicePoints = self.countChoicePointsByArea(areaIndex)
         for choiceIndex in range(9):
             choicePoint = choicePoints[choiceIndex]
-            if len(choicePoint)==1: #只在某一格可填
-                latticeIndex = choicePoint[0]
-                lattice = self.getLatticeByIndex(latticeIndex)
-                lattice.clearChoiceByNumber(choiceIndex+1) #清空该格子的其它数
-                row,column = lattice.getLatticPoint()
-                for teIndex in range(9): #清空该格子外的可选数
-                    rowLatticeIndex = row*9 + teIndex #计算行相关的格子下标
-                    columnLatticeIndex = teIndex*9 + column #计算列相关的格子下标
-                    if rowLatticeIndex!= latticeIndex: #不处理当前格子
-                        self.getLatticeByIndex(rowLatticeIndex).setAlternativeNumberEmpty(choiceIndex) #只清除当前可选数
-                    if columnLatticeIndex!=latticeIndex: #不处理当前格子
-                        self.getLatticeByIndex(columnLatticeIndex).setAlternativeNumberEmpty(choiceIndex)#只清除当前可选数
+            if len(choicePoint)!=1: #不只在某一格可填
+                continue
+            latticeIndex = choicePoint[0]
+            lattice = self.getLatticeByIndex(latticeIndex)
+            lattice.clearChoiceByNumber(choiceIndex+1) #清空该格子的其它数
+            row,column = lattice.getLatticPoint()
+            for teIndex in range(9): #清空该格子外的可选数
+                rowLattice = self.getLattice(row,teIndex)
+                columnLattice = self.getLattice(teIndex,column)
+                if rowLattice.getLatticeIndex()!=latticeIndex: #不处理当前格子
+                    rowLattice.setChoiceEmpty(choiceIndex) #只清除当前可选数
+                if columnLattice.getLatticeIndex()!=latticeIndex: #不处理当前格子
+                    columnLattice.setChoiceEmpty(choiceIndex)#只清除当前可选数
 
-    def inferAreaExtra(self,areaIndex:int):
+    def inferAreaChoiceLine(self,areaIndex:int,isRow=True):
         '''
         1、若该宫内某一可选数只占一行/列时，对应行/列的其它宫的格子排除该可选数
         2、若该宫内某一可选数只占两行/列时，且下一宫的该数亦只出现在同样的两行/列中，则对应行/列的其它宫的格子排除该可选数
         '''
         choicePoints = self.countChoicePointsByArea(areaIndex)
         for choiceIndex in range(9):
-            choicPoint = choicePoints[choiceIndex]
-            #若该宫内某一可选数只占一行/列时，对应行/列的其它宫的格子排除该可选数
-            #若该宫内某一可选数只占两行/列时，且下一宫的该数亦只出现在同样的两行/列中，则对应行/列的其它宫的格子排除该可选数
-            if len(choicPoint)>=2 and len(choicPoint)<=6:
-                rowIndexChecks = self.isSameTwoRows(choicPoint)#检查是否在同一行
+            choicePoint = choicePoints[choiceIndex]
+            if isEqualOrIn(len(choicePoint),2,6):
+                rowIndexChecks = isTwoRowCloumns(choicePoint,isRow=isRow)#检查是否在同一行
                 #清除行
-                if len(rowIndexChecks)==1:
-                    for cloumnIndex in range(9):
-                        latticeIndex = rowIndexChecks[0]*9+cloumnIndex
-                        if latticeIndex not in choicPoint:
-                            self.getLatticeByIndex(latticeIndex).setAlternativeNumberEmpty(choiceIndex)
-                elif len(rowIndexChecks)==2: #只有两行时才需要处理
-                    nextAreaIndex = self.getNextArea(areaIndex,isRow=True) #获取下一宫下标
+                if isEqualOrIn(len(rowIndexChecks),1):
+                    self.clearLineByIndex(rowIndexChecks[0],choiceIndex,isRow=isRow,extraIndexs=choicePoint)
+                elif isEqualOrIn(len(rowIndexChecks),2): #只有两行时才需要处理
+                    nextAreaIndex = getNextArea(areaIndex,isRow=isRow) #获取下一宫下标
                     rowPoints = self.countChoicePointsByArea(nextAreaIndex)
                     rowPoint = rowPoints[choiceIndex]
-                    if len(rowPoint)>=2 and len(rowPoint)<=6:
-                        nextRowIndexChecks = self.isSameTwoRows(rowPoint)
-                        if len(nextRowIndexChecks)==2 and nextRowIndexChecks[0] in rowIndexChecks and nextRowIndexChecks[1] in rowIndexChecks:
+                    if isEqualOrIn(len(rowPoint),2,6):
+                        nextRowIndexChecks = isTwoRowCloumns(rowPoint,isRow=isRow)
+                        if isEqualOrIn(len(nextRowIndexChecks),2) and isListContains(rowIndexChecks,nextRowIndexChecks):
                             for teRowCheck in rowIndexChecks:
-                                for teColumn in range(9):
-                                    latticeIndex = teRowCheck*9+teColumn
-                                    lattice = self.getLatticeByIndex(latticeIndex)
-                                    if lattice.getAreaIndex() not in [areaIndex,nextAreaIndex]:
-                                        lattice.setAlternativeNumberEmpty(choiceIndex)
+                                self.clearLineByArea(teRowCheck,choiceIndex,isRow=isRow,extraAreas=[areaIndex,nextAreaIndex])
 
-                columnIndexChecks = self.isSameTwoColumns(choicPoint)#检查是否在同一列
-                #清除列
-                if len(columnIndexChecks)==1:
-                    for rowIndex in range(9):
-                        latticeIndex = rowIndex*9+columnIndexChecks[0]
-                        if latticeIndex not in choicPoint:
-                            self.getLatticeByIndex(latticeIndex).setAlternativeNumberEmpty(choiceIndex)
-                elif len(columnIndexChecks)==2: #只有两行时才需要处理
-                    nextAreaIndex = self.getNextArea(areaIndex,isRow=False) #获取下一宫下标
-                    columnPoints = self.countChoicePointsByArea(nextAreaIndex)
-                    columnPoint = columnPoints[choiceIndex]
-                    if len(columnPoint)>=2 and len(columnPoint)<=6:
-                        nextColumnIndexChecks = self.isSameTwoColumns(columnPoint)
-                        if len(nextColumnIndexChecks)==2 and nextColumnIndexChecks[0] in columnIndexChecks and nextColumnIndexChecks[1] in columnIndexChecks:
-                            for teColumnCheck in columnIndexChecks:
-                                for teRow in range(9):
-                                    latticeIndex = teRow*9+teColumnCheck
-                                    lattice = self.getLatticeByIndex(latticeIndex)
-                                    if lattice.getAreaIndex() not in [areaIndex,nextAreaIndex]:
-                                        lattice.setAlternativeNumberEmpty(choiceIndex)
-
-    def getNextArea(self,areaIndex:int,isRow:bool)->int:
+    def inferAreaChoiceCombine(self,areaIndex:int):
         '''
-        获得当宫的下一行/列的宫
+        若某宫某n个数只出现在n个格子，则清空那些格子那些数外的可选数
         '''
-        areaRow,areaColumn = self.getAreaStartPoint(areaIndex) #宫起始坐标
-        if isRow:
-            return areaRow*3+(areaColumn+1)%3
-        else:
-            return ((areaRow+1)%3)*3+areaColumn
+        choicePoints = self.countChoicePointsByArea(areaIndex)
+        choiceIndexs = getValidIndexs(choicePoints,2,4)
+        for combineCount in range(2,4+1):
+            combineSet = getCombination(choiceIndexs,combineCount)
+            if combineSet==None or len(combineSet)<1:
+                continue
+            for combineQueue in combineSet:
+                if self.isCombineLattice(choicePoints,combineQueue): #满足组合条件
+                    combinePoint = choicePoints[combineQueue[0]] #获得组合的格子
+                    for latticeIndex in combinePoint:
+                        self.getLatticeByIndex(latticeIndex).clearChoiceByIndexs(combineQueue)
 
-    def isSameTwoRows(self,indexList:list[int])->list[int]:
-        '''判断是否在同两行'''
-        if indexList==None or len(indexList)==0:
-            return []
-        rowIndexs = []
-        for index in indexList:
-            rowIndex = int(index/9)
-            if rowIndex not in rowIndexs:
-                if len(rowIndexs)<=2:
-                    rowIndexs.append(rowIndex)
-                else:
-                    return []
-        return rowIndexs
+def isListContains(contains:list,checks:list)->bool:
+    '''
+    判断checks中的每一项是否出现在contains中
+    '''
+    if checks==None or len(checks)<1:
+        return False
+    for item in checks:
+        if item not in contains:
+            return False
+    return True
 
-    def isSameTwoColumns(self,indexList:list[int])->list[int]:
-        '''判断是否在同两列'''
-        if indexList==None or len(indexList)==0:
-            return []
-        cloumnIndexs = []
-        for index in indexList:
-            columnIndex = int(index%9)
-            if columnIndex not in cloumnIndexs:
-                if len(cloumnIndexs)<=2:
-                    cloumnIndexs.append(columnIndex)
-                else:
-                    return []
-        return cloumnIndexs
+def isEqualOrIn(input:int,value:int,maxValue:int=None)->bool:
+    '''
+    判断列表长度是否符合，若maxlength==None，则判断与length是否相等，否则判断范围是否在[length,maxLength]
+    '''
+    if maxValue == None:
+        return input==value
+    return input>=value and input<=maxValue;
 
-    def getOtherRowCloumn(self,indexList:list[int])->int:
-        '''获取其它行/列'''
-        if len(indexList)==2:
-            areaIndex = int(indexList[0]/3) #0,1,2
-            return (areaIndex*3+1)*3-indexList[0]-indexList[1]
-        else:
-            return -1
+def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
+    '''
+    记录有效数字下标
+    '''
+    choiceIndexs = [] #记录有效数字
+    for choiceIndex in range(9):
+        choicePoint = choicePoints[choiceIndex]
+        if isEqualOrIn(len(choicePoint),minSize,maxSize):
+            choiceIndexs.append(choiceIndex)
+    return choiceIndexs
+
+def getAreaStartPoint(areaIndex:int)->tuple:
+    '''
+    获得该宫的起始坐标
+    '''
+    return (int(areaIndex/3),int(areaIndex%3))
+
+def getNextArea(areaIndex:int,isRow:bool)->int:
+    '''
+    获得当宫的下一行/列的宫
+    '''
+    areaRow,areaColumn = getAreaStartPoint(areaIndex) #宫起始坐标
+    if isRow:
+        return areaRow*3+(areaColumn+1)%3
+    else:
+        return ((areaRow+1)%3)*3+areaColumn
+
+
+def isTwoRowCloumns(indexList:list[int],isRow:bool)->list[int]:
+    '''判断是否在同两行/列并返回'''
+    if indexList==None or len(indexList)==0:
+        return []
+    countIndexs = []
+    for index in indexList:
+        countIndex = int(index/9) if isRow else int(index%9)
+        if countIndex not in countIndexs:
+            countIndexs.append(countIndex)
+    return countIndexs
 
 def getCombination(numberList:list[int],combineCount:int)->list:
     '''
