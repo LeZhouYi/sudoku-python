@@ -78,7 +78,7 @@ def renderCtrlClick(canvas:tk.Canvas,index:int):
     '''
     渲染操作键被点击的效果
     '''
-    startX = cfg.ctrlStartX+cfg.ctrlLength*(index%2)
+    startX = cfg.ctrlStartX+cfg.ctrlLength*int(index%2)
     startY = cfg.ctrlStartY+cfg.ctrlHeight*int(index/2)
     canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorSelectBg,width=cfg.lineMainWidth,outline=cfg.colorSelectLine)
     sleep(cfg.timeClick*2)
@@ -155,43 +155,31 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
         #渲染数字
         renderDisplayNumber(canvas,lattice)
 
-def renderCtrlBlock(canvas:tk.Canvas,isBlocked:bool,canBlock:bool):
+def renderCtrl(canvas:tk.Canvas,ctrlIndex:int,extraInfo:any=None):
     '''
-    渲染锁定、解锁操作键
+    渲染控制键
     '''
-    startX= cfg.ctrlStartX
-    startY = cfg.ctrlStartY
+    startX = cfg.ctrlStartX + int(ctrlIndex%2)*cfg.ctrlLength
+    startY = cfg.ctrlStartY + int(ctrlIndex/2)*cfg.ctrlHeight
     canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
-    text = cfg.textUnLock if isBlocked else cfg.textBlocked
-    textColor = cfg.colorFont if canBlock or isBlocked else cfg.colorFontUnable
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlBlockedIndex][0],dt.ctrlPoints[cfg.ctrlBlockedIndex][1],text=text,fill=textColor,font=cfg.fontCtrl)
+    textContent = getTextContent(ctrlIndex,extraInfo)
+    canvas.create_text(dt.ctrlPoints[ctrlIndex][0],dt.ctrlPoints[ctrlIndex][1],text=textContent["text"],fill=textContent["textColor"],font=cfg.fontCtrl)
 
-def renderCtrlClear(canvas:tk.Canvas,canClear:bool):
+def getTextContent(ctrlIndex:int,extraInfo:any=None)->dict:
     '''
-    渲染擦除键
+    返回控件的文本
     '''
-    startX= cfg.ctrlStartX+cfg.ctrlLength
-    startY = cfg.ctrlStartY
-    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
-    textColor = cfg.colorFont if canClear else cfg.colorFontUnable
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlClearIndex][0],dt.ctrlPoints[cfg.ctrlClearIndex][1],text=cfg.textClear,fill=textColor,font=cfg.fontCtrl)
-
-def renderCtrlInfer(canvas:tk.Canvas):
-    '''
-    渲染推测键
-    '''
-    startX= cfg.ctrlStartX
-    startY = cfg.ctrlStartY+cfg.ctrlHeight
-    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
-    textColor = cfg.colorFont if not dt.isRunInfer else cfg.colorFontUnable
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlInferIndex][0],dt.ctrlPoints[cfg.ctrlInferIndex][1],text=cfg.textInfer,fill=textColor,font=cfg.fontCtrl)
-
-def renderCtrlInfo(canvas:tk.Canvas):
-    '''
-    渲染提示键
-    '''
-    startX= cfg.ctrlStartX+cfg.ctrlLength
-    startY = cfg.ctrlStartY+cfg.ctrlHeight
-    canvas.create_rectangle(startX,startY,startX+cfg.ctrlLength,startY+cfg.ctrlHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
-    textColor = cfg.colorFont
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlInfoIndex][0],dt.ctrlPoints[cfg.ctrlInfoIndex][1],text=cfg.textInfo,fill=textColor,font=cfg.fontCtrl)
+    content = {}
+    if ctrlIndex == cfg.ctrlBlockedIndex:
+        content["text"] = cfg.textUnLock if extraInfo["isBlocked"] else cfg.textBlocked
+        content["textColor"] = cfg.colorFont if extraInfo["canBlock"] or extraInfo["isBlocked"] else cfg.colorFontUnable
+    elif ctrlIndex == cfg.ctrlClearIndex:
+        content["text"] = cfg.textClear
+        content["textColor"] = cfg.colorFont if extraInfo["canClear"] else cfg.colorFontUnable
+    elif ctrlIndex == cfg.ctrlInferIndex:
+        content["text"] = cfg.textInfer
+        content["textColor"] = cfg.colorFont if not dt.isRunInfer else cfg.colorFontUnable
+    elif ctrlIndex == cfg.ctrlInfoIndex:
+        content["text"] = cfg.textInfo
+        content["textColor"] = cfg.colorFont
+    return content

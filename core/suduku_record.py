@@ -86,15 +86,15 @@ class RecordContent(object):
                 self.info = "【宫两列】因第%d,%d宫中数字[%d]只在第%d,%d列中可填，清空第%d宫中%s格子的可选数字[%d]"%(areaIndexs[0]+1,areaIndexs[1]+1,self.valueList+1,
                                 lineIndexs[0]+1,lineIndexs[1]+1,self.getAreaIndex(self.indexList),self.getIndexText(self.indexList),self.valueList+1)
         elif self.isAction(ACTION_AREA_ONLY_IN):
-            self.info = "【宫唯一1】因第%d宫中数字[%d]只在%s格子可填，清空该格子的可选数字%s"%(self.getAreaIndex(self.indexList)+1,self.extract["choiceIndex"],
+            self.info = "【宫唯一】因第%d宫中数字[%d]只在%s格子可填，清空该格子的可选数字%s"%(self.getAreaIndex(self.indexList)+1,self.extract["choiceIndex"],
                                 self.getIndexText(self.indexList),self.valueList)
         elif self.isAction(ACTION_AREA_ONLY_LINE):
             areaIndex = self.getAreaIndex(self.extract["extraIndexs"])
             pointText = self.getIndexText(self.extract["extraIndexs"])
             if self.extract["isRow"]:
-                self.info = "【宫唯一2】因第%d宫中数字[%d]只在%s格子可填，清空%s格子的可选数字[%s]"%(areaIndex+1,self.valueList+1,pointText,self.getIndexText(self.indexList),self.valueList+1)
+                self.info = "【宫唯一】因第%d宫中数字[%d]只在%s格子可填，清空%s格子的可选数字[%s]"%(areaIndex+1,self.valueList+1,pointText,self.getIndexText(self.indexList),self.valueList+1)
             else:
-                self.info = "【宫唯一3】因第%d宫中数字[%d]只在%s格子可填，清空%s格子的可选数字[%s]"%(areaIndex+1,self.valueList+1,pointText,self.getIndexText(self.indexList),self.valueList+1)
+                self.info = "【宫唯一】因第%d宫中数字[%d]只在%s格子可填，清空%s格子的可选数字[%s]"%(areaIndex+1,self.valueList+1,pointText,self.getIndexText(self.indexList),self.valueList+1)
         elif self.isAction(ACTION_AREA_COMBINE):
             valueList = [self.extract["combineQueue"][i]+1 for i in range(len(self.extract["combineQueue"]))]
             pointList = ""

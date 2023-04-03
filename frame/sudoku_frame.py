@@ -234,10 +234,11 @@ def reRenderCtrl(frame:SudokuFrame,sudoku:sd.Sudoku):
     if len(dt.selectIndexs)>0:
         lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
         if lattice!=None:
-            threading.Thread(target=wr.renderCtrlBlock,args=[frame.mainCanvas,lattice.isBlocked(),lattice.canBlocked()],daemon=False).start()
-            threading.Thread(target=wr.renderCtrlClear,args=[frame.mainCanvas,lattice.canClear()],daemon=False).start()
-    threading.Thread(target=wr.renderCtrlInfer,args=[frame.mainCanvas],daemon=False).start()
-    threading.Thread(target=wr.renderCtrlInfo,args=[frame.mainCanvas],daemon=False).start()
+            threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlBlockedIndex,{"isBlocked":lattice.isBlocked(),"canBlock":lattice.canBlocked()}]
+                            ,daemon=False).start()
+            threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlClearIndex,{"canClear":lattice.canClear()}],daemon=False).start()
+    threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlInferIndex],daemon=False).start()
+    threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlInfoIndex],daemon=False).start()
 
 def reRenderNumberChoice(frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
