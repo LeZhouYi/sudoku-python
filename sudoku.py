@@ -1,4 +1,3 @@
-import logging
 import os
 from frame import sudoku_frame as sf
 

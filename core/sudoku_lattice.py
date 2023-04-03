@@ -1,4 +1,5 @@
 import threading
+import copy
 from config import data as dt
 from config import config as cfg
 
@@ -147,7 +148,7 @@ class Lattice(object):
         elif self.isStatusEqual(STATUS_BLOCKED): #锁定的数是正确时
             self.setStatus(STATUS_WRITTEN)
 
-    def clearDisplay(self):
+    def clearDisplay(self)->bool:
         '''
         擦除当前格子写入的数
         '''
@@ -155,6 +156,8 @@ class Lattice(object):
             self.setDisplay(NUMBER_EMPTY) #擦除
             self.initChoices() #恢复可选数
             self.setStatus(STATUS_EMPTY) #更新状态
+            return True
+        return False
 
     def initChoices(self):
         '''
@@ -170,7 +173,7 @@ class Lattice(object):
         with self.lock:
             self.choiceNumbers = [NUMBER_EMPTY for i in range(9)]
 
-    def setDisplay(self,displayNumber:int):
+    def setDisplay(self,displayNumber:int)->bool:
         '''
         为当前格子写入数字
         '''
@@ -179,6 +182,8 @@ class Lattice(object):
                 self.displayNumber = displayNumber  #设置显示的数字
             self.clearChoices() #清空可选数
             self.setStatus(STATUS_WRITTEN) #更新状态
+            return True #输入成功
+        return False #输入失败
 
     def backChoice(self,numberChoice:int):
         '''
@@ -201,36 +206,50 @@ class Lattice(object):
         '''
         return self.displayNumber==NUMBER_EMPTY
 
-    def setChoiceEmpty(self,choiceIndex:int):
+    def setChoiceEmpty(self,choiceIndex:int)->bool:
         '''
         清除特定可选数
         '''
         assert choiceIndex>=0 and choiceIndex<9
-        with self.lock:
-            self.choiceNumbers[choiceIndex]=NUMBER_EMPTY
+        if self.isInChoices(choiceIndex):
+            with self.lock:
+                self.choiceNumbers[choiceIndex]=NUMBER_EMPTY
+            return True
+        return False
 
-    def clearChoiceByExists(self,existNumbers=list[int]):
+    def clearChoiceByExists(self,existNumbers=list[int])->list[int]:
         '''
         清除列表所述的可选数
         '''
+        clearValues = []
         for choiceIndex in range(9):
-            if not self.isDisplayEmpty():
+            if self.isDisplayEmpty() and (choiceIndex+1 in existNumbers) and self.isInChoices(choiceIndex):
+                clearValues.append(choiceIndex+1)
                 self.setChoiceEmpty(choiceIndex)
-            elif choiceIndex+1 in existNumbers:
-                self.setChoiceEmpty(choiceIndex)
+        return clearValues
 
-    def clearChoiceByNumber(self,numberChoice:int):
+    def clearChoiceByNumber(self,numberChoice:int)->list[int]:
         '''
         清空该数外的可选数
         '''
-        if numberChoice>=1 and numberChoice<=9 and self.isDisplayEmpty():
+        clearValues = copy.deepcopy(self.getValidChoices())
+        if numberChoice>=1 and numberChoice<=9 and self.isDisplayEmpty() and len(clearValues)>1:
             self.clearChoices()
             self.backChoice(numberChoice)
+            clearValues.remove(numberChoice)
+            return clearValues
+        return []
 
-    def clearChoiceByIndexs(self,choiceIndexs:list[int]):
+    def clearChoiceByIndexs(self,choiceIndexs:list[int])->list[int]:
         '''
         根据下标清除不在choiceIndexs内的可选数
         '''
+        clearValues = []
         for choiceIndex in range(9):
-            if choiceIndex not in choiceIndexs:
+            if choiceIndex not in choiceIndexs and self.isInChoices(choiceIndex):
                 self.setChoiceEmpty(choiceIndex)
+                clearValues.append(choiceIndex+1)
+        return clearValues
+
+    def isInChoices(self,choiceIndex)->bool:
+        return choiceIndex+1 in self.choiceNumbers

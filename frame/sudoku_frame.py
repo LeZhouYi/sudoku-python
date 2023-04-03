@@ -40,18 +40,18 @@ class SudokuFrame(object):
         self.mainWindow.bind("<KeyPress-8>",eventAdaptor(clickNumber,frame=self,sudoku=self.sudoku,number=8))#按8
         self.mainWindow.bind("<KeyPress-9>",eventAdaptor(clickNumber,frame=self,sudoku=self.sudoku,number=9))#按9
 
-        # chess = [0,0,2,0,9,0,7,0,0,
-        #     0,0,0,0,6,2,0,0,9,
-        #     0,6,0,0,0,0,0,0,3,
-        #     0,0,0,0,0,0,0,0,8,
-        #     8,9,5,0,2,0,6,1,4,
-        #     3,0,0,0,0,0,0,0,0,
-        #     7,0,0,0,0,0,0,5,0,
-        #     5,0,0,9,3,0,0,0,0,
-        #     0,0,1,0,8,0,3,0,0]
-        # for i in range(81):
-        #     if chess[i]!=0:
-        #         self.sudoku.setLatticeDisplay(i,chess[i])
+        chess = [0,0,0,9,6,5,7,0,3,
+            0,0,6,0,2,0,0,4,9,
+            9,0,3,0,4,8,0,2,0,
+            7,6,1,8,9,0,4,0,0,
+            0,9,0,5,1,6,0,0,0,
+            0,0,5,0,0,4,9,6,1,
+            1,4,0,6,5,0,2,0,8,
+            0,3,0,0,8,0,0,0,4,
+            0,0,8,4,0,9,0,0,0]
+        for i in range(81):
+            if chess[i]!=0:
+                self.sudoku.setLatticeDisplay(i,chess[i])
 
         self.mainWindow.mainloop() #显示窗口
 
@@ -177,6 +177,9 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
         sudoku.inferAreaChoiceLine(index,isRow=False)
         sudoku.inferAreaChoiceOnly(index)
         sudoku.inferAreaChoiceCombine(index)
+        sudoku.inferXWing(index,isRow=True)
+        sudoku.inferXWing(index,isRow=False)
+    reRenderAllLattice(frame,sudoku)#重新渲染所有格子
     with dt.isRunInferLock:
         dt.isRunInfer=False
 
