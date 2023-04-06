@@ -24,6 +24,7 @@ class SudokuFrame(object):
 
         #数据
         self.sudoku = sd.Sudoku()
+        self.recordIndex = -1
 
         #渲染
         wr.drawChessboard(self.mainCanvas)
@@ -40,20 +41,57 @@ class SudokuFrame(object):
         self.mainWindow.bind("<KeyPress-8>",eventAdaptor(clickNumber,frame=self,sudoku=self.sudoku,number=8))#按8
         self.mainWindow.bind("<KeyPress-9>",eventAdaptor(clickNumber,frame=self,sudoku=self.sudoku,number=9))#按9
 
-        chess = [0,0,0,9,6,5,7,0,3,
-            0,0,6,0,2,0,0,4,9,
-            9,0,3,0,4,8,0,2,0,
-            7,6,1,8,9,0,4,0,0,
-            0,9,0,5,1,6,0,0,0,
-            0,0,5,0,0,4,9,6,1,
-            1,4,0,6,5,0,2,0,8,
-            0,3,0,0,8,0,0,0,4,
-            0,0,8,4,0,9,0,0,0]
+        # chess = [0,0,0,9,6,5,7,0,3,
+        #     0,0,6,0,2,0,0,4,9,
+        #     9,0,3,0,4,8,0,2,0,
+        #     7,6,1,8,9,0,4,0,0,
+        #     0,9,0,5,1,6,0,0,0,
+        #     0,0,5,0,0,4,9,6,1,
+        #     1,4,0,6,5,0,2,0,8,
+        #     0,3,0,0,8,0,0,0,4,
+        #     0,0,8,4,0,9,0,0,0]
+        chess = [0,0,6,8,0,0,0,0,4,
+            0,1,0,0,0,2,3,0,0,
+            3,0,0,0,4,0,1,0,0,
+            6,9,0,0,0,0,0,0,0,
+            0,0,0,4,0,7,0,0,0,
+            0,0,0,0,0,0,0,7,6,
+            0,0,1,0,3,0,0,0,7,
+            0,0,4,5,0,0,0,2,0,
+            9,0,0,0,0,8,4,0,0]
         for i in range(81):
             if chess[i]!=0:
                 self.sudoku.setLatticeDisplay(i,chess[i])
-
+        reRenderAllLattice(self,self.sudoku)
         self.mainWindow.mainloop() #显示窗口
+
+    def isFirst(self)->bool:
+        if self.recordIndex==0 or self.sudoku.isEmptyRecord():
+            return True
+        if self.sudoku.getRecordText(self.recordIndex-1)=="":
+            return True
+        return False
+
+    def isLast(self)->bool:
+        if self.recordIndex==-1 or self.sudoku.isEmptyRecord():
+            return True
+        if self.sudoku.getRecordText(self.recordIndex+1)=="":
+            return True
+        return False
+
+    def beforeRecord(self):
+        if self.isFirst():
+            self.recordIndex-=1
+
+    def nextRecord(self):
+        if self.isLast():
+            self.recordIndex+=1
+
+    def initRecord(self):
+        self.recordIndex = -1
+
+    def getCanvas(self)->tk.Canvas:
+        return self.mainCanvas
 
 ##----------------------------InterFace------------------------------------##
 def threadOrder(before:threading.Thread,after:threading.Thread):
@@ -83,6 +121,7 @@ def clickMouseLeft(event,frame:SudokuFrame,sudoku:sd.Sudoku):
         clickChoice(event,frame,sudoku) #点击在可选数区域
     else:
         clickControl(event,frame,sudoku)
+    reRenderRecord(frame,sudoku)
 
 def clickControl(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
@@ -95,32 +134,44 @@ def clickControl(event,frame:SudokuFrame,sudoku:sd.Sudoku):
             if lattice.canBlocked():
                 lattice.setBlock() #锁定
                 reRenderLatticeSelect(frame,sudoku)#渲染格子
-                paintCtrlClick(frame,sudoku,ctrlIndex=0)#点击效果
+                paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlBlockedIndex)#点击效果
             elif lattice.isBlocked():
                 lattice.setUnlock()#解锁
                 reRenderLatticeSelect(frame,sudoku)#渲染格子
-                paintCtrlClick(frame,sudoku,ctrlIndex=0)#点击效果
+                paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlBlockedIndex)#点击效果
             return
         elif index==cfg.ctrlClearIndex: #擦除
             if lattice.canClear():
                 sudoku.clearLattice(lattice.getLatticeIndex())#擦除
                 reRenderLatticeSelect(frame,sudoku)#渲染格子
-                paintCtrlClick(frame,sudoku,ctrlIndex=1)#点击效果
+                paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlClearIndex)#点击效果
                 reRenderNumberChoice(frame,sudoku)#渲染可选数
             return
     if index ==cfg.ctrlInferIndex: #推断
+        frame.initRecord()
         with dt.isRunInferLock:
             if not dt.isRunInfer:
                 dt.isRunInfer = True
             else:
                 return
-        paintCtrlClick(frame,sudoku,ctrlIndex=2)#点击效果
+        paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlInferIndex)#点击效果
         clickInfer(event,frame,sudoku)
     elif index == cfg.ctrlInfoIndex: #提示
         with dt.isInfoLock:
             dt.isInfo = not dt.isInfo
-        paintCtrlClick(frame,sudoku,ctrlIndex=3)#点击效果
+        paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlInfoIndex)#点击效果
         reRenderAllLattice(frame,sudoku)#重新渲染所有格子
+    elif index == cfg.ctrlBeforeIndex: #上一步
+        if not frame.isFirst():
+            frame.beforeRecord()
+            reRenderRecord(frame,sudoku)
+        paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlBeforeIndex)#点击效果
+    elif index == cfg.ctrlNextIndex: #下一页
+        if not frame.isLast():
+            frame.nextRecord()
+            reRenderRecord(frame,sudoku)
+        paintCtrlClick(frame,sudoku,ctrlIndex=cfg.ctrlNextIndex)#点击效果
+    reRenderRecord(frame,sudoku)
 
 def clickLattice(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
@@ -148,6 +199,7 @@ def clickChoice(event,frame:SudokuFrame,sudoku:sd.Sudoku):
         reRenderLatticeSelect(frame,sudoku)#渲染选中效果
         paintChoiceClick(frame,sudoku,indexNumber)#渲染点击效果
         reRenderCtrl(frame,sudoku)#渲染操作键是否可用
+    reRenderRecord(frame,sudoku)
 
 def clickNumber(event,frame:SudokuFrame,sudoku:sd.Sudoku,number:int):
     '''
@@ -160,6 +212,7 @@ def clickNumber(event,frame:SudokuFrame,sudoku:sd.Sudoku,number:int):
         reRenderLatticeSelect(frame,sudoku)#渲染选中效果
         reRenderNumberChoice(frame,sudoku)#渲染可选区域
         reRenderCtrl(frame,sudoku)#渲染操作键是否可用
+    reRenderRecord(frame,sudoku)
 
 def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
@@ -182,13 +235,20 @@ def clickInfer(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     reRenderAllLattice(frame,sudoku)#重新渲染所有格子
     with dt.isRunInferLock:
         dt.isRunInfer=False
+    reRenderRecord(frame,sudoku)
 
 ##-----------------------------Render----------------------------------###
+def reRenderRecord(frame:SudokuFrame,sudoku:sd.Sudoku):
+    if not sudoku.isEmptyRecord():
+        recordText = sudoku.getRecordText()
+        if recordText != "":
+            threading.Thread(target=wr.renderRecord,args=[frame.getCanvas(),sudoku.getRecordText(frame.recordIndex)],daemon=False).start()
+
 def paintCtrlClick(frame:SudokuFrame,sudoku:sd.Sudoku,ctrlIndex:int):
     '''
     点击操作键的渲染流程
     '''
-    threadClick = threading.Thread(target=wr.renderCtrlClick,args=[frame.mainCanvas,ctrlIndex],daemon=False)#渲染点击效果
+    threadClick = threading.Thread(target=wr.renderCtrlClick,args=[frame.getCanvas(),ctrlIndex],daemon=False)#渲染点击效果
     threadCtrl = threading.Thread(target=reRenderCtrl,args=[frame,sudoku],daemon=False)#渲染操作键是否可用
     threading.Thread(target=threadOrder,args=[threadClick,threadCtrl],daemon=False).start()#顺序执行
 
@@ -196,7 +256,7 @@ def paintChoiceClick(frame:SudokuFrame,sudoku:sd.Sudoku,indexNumber:int):
     '''
     点击可选数区域的渲染流程
     '''
-    threadClick = threading.Thread(target= wr.renderChoiceClick,args=[frame.mainCanvas,indexNumber],daemon=False)#渲染可选数点击效果
+    threadClick = threading.Thread(target= wr.renderChoiceClick,args=[frame.getCanvas(),indexNumber],daemon=False)#渲染可选数点击效果
     threadChoice = threading.Thread(target=reRenderNumberChoice,args=[frame,sudoku],daemon=False)#更新可选数
     threading.Thread(target=threadOrder,args=[threadClick,threadChoice],daemon=False).start()#顺序执行
 
@@ -206,7 +266,7 @@ def reRenderAllLattice(frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
     for i in range(81):
         if i not in dt.selectIndexs:
-            threading.Thread(target=wr.clearLatticeSelect,args=[frame.mainCanvas,[i],sudoku],daemon=False).start()
+            threading.Thread(target=wr.clearLatticeSelect,args=[frame.getCanvas(),[i],sudoku],daemon=False).start()
     reRenderLatticeSelect(frame,sudoku)
 
 def reRenderLatticeSelect(frame:SudokuFrame,sudoku:sd.Sudoku):
@@ -218,14 +278,14 @@ def reRenderLatticeSelect(frame:SudokuFrame,sudoku:sd.Sudoku):
     for selectIndex in indexs:
         #渲染选中效果
         lattice = sudoku.getLatticeByIndex(selectIndex)
-        threading.Thread(target=wr.renderLatticeSelect,args=[frame.mainCanvas,lattice],daemon=False).start()
+        threading.Thread(target=wr.renderLatticeSelect,args=[frame.getCanvas(),lattice],daemon=False).start()
 
 def reClearLatticeSelect(frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
     清除选中的格子的效果
     '''
     with dt.selectLock:
-        threading.Thread(target=wr.clearLatticeSelect,args=[frame.mainCanvas,copy.deepcopy(dt.selectIndexs),sudoku],daemon=False).start()
+        threading.Thread(target=wr.clearLatticeSelect,args=[frame.getCanvas(),copy.deepcopy(dt.selectIndexs),sudoku],daemon=False).start()
 
 def reRenderCtrl(frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
@@ -234,11 +294,13 @@ def reRenderCtrl(frame:SudokuFrame,sudoku:sd.Sudoku):
     if len(dt.selectIndexs)>0:
         lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
         if lattice!=None:
-            threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlBlockedIndex,{"isBlocked":lattice.isBlocked(),"canBlock":lattice.canBlocked()}]
+            threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlBlockedIndex,{"isBlocked":lattice.isBlocked(),"canBlock":lattice.canBlocked()}]
                             ,daemon=False).start()
-            threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlClearIndex,{"canClear":lattice.canClear()}],daemon=False).start()
-    threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlInferIndex],daemon=False).start()
-    threading.Thread(target=wr.renderCtrl,args=[frame.mainCanvas,cfg.ctrlInfoIndex],daemon=False).start()
+            threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlClearIndex,{"canClear":lattice.canClear()}],daemon=False).start()
+    threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlInferIndex],daemon=False).start()
+    threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlInfoIndex],daemon=False).start()
+    threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlBeforeIndex,{"isFirst":frame.isFirst()}],daemon=False).start()
+    threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlNextIndex,{"isLast":frame.isLast()}],daemon=False).start()
 
 def reRenderNumberChoice(frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
@@ -247,4 +309,4 @@ def reRenderNumberChoice(frame:SudokuFrame,sudoku:sd.Sudoku):
     if len(dt.selectIndexs)>0:
         lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
         if lattice!=None:
-            threading.Thread(target=wr.renderNumberChoice,args=[frame.mainCanvas,lattice.getChoiceNumbers(),lattice.isBlocked()],daemon=False).start()
+            threading.Thread(target=wr.renderNumberChoice,args=[frame.getCanvas(),lattice.getChoiceNumbers(),lattice.isBlocked()],daemon=False).start()

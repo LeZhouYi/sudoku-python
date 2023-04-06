@@ -55,10 +55,15 @@ def drawChessboard(canvas:tk.Canvas):
         drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.ctrlStartX+i*cfg.ctrlLength,cfg.ctrlStartY-1,cfg.ctrlHeight*cfg.ctrlFloorAmout+2,isVertical=True)
     for i in range(cfg.ctrlFloorAmout+1):
         drawLine(canvas,cfg.colorMainLine,cfg.lineMainWidth,cfg.ctrlStartX-1,cfg.ctrlStartY+i*cfg.ctrlHeight,cfg.areaLength+2,isVertical=False)
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlBlockedIndex][0],dt.ctrlPoints[cfg.ctrlBlockedIndex][1],text=cfg.textBlocked,fill=cfg.colorFont,font=cfg.fontCtrl)
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlClearIndex][0],dt.ctrlPoints[cfg.ctrlClearIndex][1],text=cfg.textClear,fill=cfg.colorFontUnable,font=cfg.fontCtrl)
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlInferIndex][0],dt.ctrlPoints[cfg.ctrlInferIndex][1],text=cfg.textInfer,fill=cfg.colorFont,font=cfg.fontCtrl)
-    canvas.create_text(dt.ctrlPoints[cfg.ctrlInfoIndex][0],dt.ctrlPoints[cfg.ctrlInfoIndex][1],text=cfg.textInfo,fill=cfg.colorFont,font=cfg.fontCtrl)
+    #控件文本
+    renderCtrl(canvas,cfg.ctrlBlockedIndex,None)
+    renderCtrl(canvas,cfg.ctrlClearIndex,None)
+    renderCtrl(canvas,cfg.ctrlInferIndex,None)
+    renderCtrl(canvas,cfg.ctrlInfoIndex,None)
+    renderCtrl(canvas,cfg.ctrlBeforeIndex,None)
+    renderCtrl(canvas,cfg.ctrlNextIndex,None)
+    #操作记录界面
+    canvas.create_rectangle(cfg.recordStartX,cfg.recordStartY,cfg.recordStartX+cfg.recordWidth,cfg.recordStartY+cfg.recordHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
 
 def renderNumberChoice(canvas:tk.Canvas,number:list[int],isBlocked:bool):
     '''
@@ -106,6 +111,14 @@ def renderChoiceClick(canvas:tk.Canvas,index:int):
     canvas.create_line(startX,startY-1,startX,startY+cfg.latticeLength+1,fill=dt.colorList[paintMethod[2]],width=dt.widthList[paintMethod[2]])
     canvas.create_line(startX+cfg.latticeLength,startY-1,startX+cfg.latticeLength,startY+cfg.latticeLength+1,fill=dt.colorList[paintMethod[3]],width=dt.widthList[paintMethod[3]])
     # canvas.create_text(point[0],point[1],text=str(index+1),fill=cfg.colorFont,font=cfg.fontNumber)
+
+def renderRecord(canvas:tk.Canvas,text:str=None):
+    '''
+    渲染日志记录页面
+    '''
+    canvas.create_rectangle(cfg.recordStartX,cfg.recordStartY,cfg.recordStartX+cfg.recordWidth,cfg.recordStartY+cfg.recordHeight,fill=cfg.colorCanvasBg,width=cfg.lineMainWidth,outline=cfg.colorMainLine)
+    if text != None:
+        canvas.create_text(cfg.recordPoint[0],cfg.recordPoint[1],text=text,font=cfg.fontRecord,fill=cfg.colorFontRecord)
 
 def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
@@ -171,15 +184,25 @@ def getTextContent(ctrlIndex:int,extraInfo:any=None)->dict:
     '''
     content = {}
     if ctrlIndex == cfg.ctrlBlockedIndex:
-        content["text"] = cfg.textUnLock if extraInfo["isBlocked"] else cfg.textBlocked
-        content["textColor"] = cfg.colorFont if extraInfo["canBlock"] or extraInfo["isBlocked"] else cfg.colorFontUnable
+        content["text"] = cfg.textUnLock if isInDict(extraInfo,"isBlocked") and extraInfo["isBlocked"] else cfg.textBlocked
+        content["textColor"] = cfg.colorFont if ((isInDict(extraInfo,"canBlock") and isInDict(extraInfo,"isBlocked"))
+                                    and (extraInfo["canBlock"] or extraInfo["isBlocked"])) else cfg.colorFontUnable
     elif ctrlIndex == cfg.ctrlClearIndex:
         content["text"] = cfg.textClear
-        content["textColor"] = cfg.colorFont if extraInfo["canClear"] else cfg.colorFontUnable
+        content["textColor"] = cfg.colorFont if isInDict(extraInfo,"canClear") and extraInfo["canClear"] else cfg.colorFontUnable
     elif ctrlIndex == cfg.ctrlInferIndex:
         content["text"] = cfg.textInfer
         content["textColor"] = cfg.colorFont if not dt.isRunInfer else cfg.colorFontUnable
     elif ctrlIndex == cfg.ctrlInfoIndex:
         content["text"] = cfg.textInfo
         content["textColor"] = cfg.colorFont
+    elif ctrlIndex == cfg.ctrlBeforeIndex:
+        content["text"] = cfg.textBefore
+        content["textColor"] = cfg.colorFont if isInDict(extraInfo,"isFirst") and (not extraInfo["isFirst"]) else cfg.colorFontUnable
+    elif ctrlIndex == cfg.ctrlNextIndex:
+        content["text"] = cfg.textNext
+        content["textColor"] = cfg.colorFont if isInDict(extraInfo,"isLast") and (not extraInfo["isLast"]) else cfg.colorFontUnable
     return content
+
+def isInDict(dictData:dict,key:str)->bool:
+    return dictData!=None and key in dictData

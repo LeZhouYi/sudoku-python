@@ -130,8 +130,11 @@ class RecordContent(object):
     def isAction(self,actionType:int):
         return self.actionType == actionType
 
+    def getInfo(self)->str:
+        return self.info
+
 '''
-用于储存suduku操作记录的数据结构
+用于储存sudoku操作记录的数据结构
 '''
 class Record(object):
 
@@ -140,3 +143,14 @@ class Record(object):
 
     def addRecord(self,content:RecordContent):
         self.actionList.append(content)
+
+    def isEmpty(self)->bool:
+        return len(self.actionList)==0
+
+    def getRecordInfo(self,index:int)->str:
+        if index>=0 and index<len(self.actionList):
+            return self.actionList[index].getInfo()
+        elif index<0 and index>-len(self.actionList):
+            return self.actionList[index].getInfo()
+        else:
+            return ""

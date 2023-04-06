@@ -4,8 +4,14 @@ mainCanvasSize = 550 #数独棋盘显示的画布大小
 canvasAlign = 5 #空白间隙宽
 
 windowWidth = mainCanvasSize+195 #整个窗口默认显示宽
-windowHeight = mainCanvasSize #个窗口默认显示高
-windowTitle = "Soduku @Skily_leyu"
+windowHeight = mainCanvasSize + 60 #个窗口默认显示高
+windowTitle = "Sudoku @Skily_leyu"
+
+recordStartX = canvasAlign #操作记录横坐标
+recordStartY = mainCanvasSize + canvasAlign #操作记录纵坐标
+recordHeight = 50 #操作记录窗口高
+recordWidth = windowWidth - 2*canvasAlign -4 #操作记录窗口宽
+recordPoint = [recordStartX+int(recordWidth/2), recordStartY+int(recordHeight)/2] #文本
 
 choiceStartX = mainCanvasSize+canvasAlign #可选数画布起始x坐标
 choiceStartY = canvasAlign #可选数画布起始y坐标
@@ -20,10 +26,12 @@ colorFontSelect = "brown" #字体被选中时颜色
 colorFontUnable = "gray" #不可用字体颜色
 colorFontBlock = "gray" #被锁定字体颜色
 colorFontInfo = "gray" #格子提示的数字颜色
+colorFontRecord = "black" #操作提示字体颜色
 
 fontNumber = ("Purisa",20) #数字字体设置
 fontCtrl = ("Purisa",16) #文本字体设置
 fontInfo = ("Purisa",10) #格子提示数字字体
+fontRecord = ("Purisa",14) #操作提示数字字体
 
 lineMainWidth = 3 #宫线宽
 linePartWidth = 1 #格线宽
@@ -49,11 +57,15 @@ textUnLock = "解锁"
 textClear = "擦除"
 textInfer = "推测"
 textInfo = "提示"
+textBefore = "上步"
+textNext = "下步"
 
 ctrlBlockedIndex = 0 #锁定、解锁键下标
 ctrlClearIndex =1 #擦除
 ctrlInferIndex = 2 #推测
 ctrlInfoIndex = 3 #提示
+ctrlBeforeIndex = 10 #上步
+ctrlNextIndex = 11 #下步
 
 infoOffset = 0
 infoLength = int((latticeLength-2*infoOffset)/3)

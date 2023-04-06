@@ -1,6 +1,6 @@
 import copy
 from core.sudoku_lattice import *
-from core.suduku_record import *
+from core.sudoku_record import *
 
 '''
 数独整体数据结构
@@ -97,7 +97,7 @@ class Sudoku(object):
         for teIndex in range(9):
             lattice = self.getLattice(lineIndex,teIndex) if isRow else self.getLattice(teIndex,lineIndex)
             clearValue = lattice.clearChoiceByExists(existNumbers)
-            if not isEqualOrIn(len(clearValue),0):
+            if not isEqualOrIn(clearValue,0):
                 actionType = ACTION_ROW_LINE_BASE if isRow else ACTION_COLUMN_LINE_BASE
                 self.record.addRecord(RecordContent(actionType,lattice.getLatticeIndex(),existNumbers,{"lineIndex":lineIndex,"existNumbers":existNumbers}))
 
@@ -127,7 +127,7 @@ class Sudoku(object):
                     combinePoint = choicePoints[combineQueue[0]] #获得组合的格子
                     for latticeIndex in combinePoint:
                         clearValues = self.getLatticeByIndex(latticeIndex).clearChoiceByIndexs(combineQueue)
-                        if not isEqualOrIn(len(clearValues),0):
+                        if not isEqualOrIn(clearValues,0):
                             self.record.addRecord(RecordContent(actionType,latticeIndex,clearValues,{"lineIndex":lineIndex,"combineQueue":combineQueue,"combinePoint":combinePoint}))
 
     def isCombineLattice(self,choicePoints:list,combineQueue:list[int])->bool:
@@ -176,7 +176,7 @@ class Sudoku(object):
             lattice = self.getLattice(index,teIndex) if isRow else self.getLattice(teIndex,index)
             if choiceNumber in lattice.getChoiceNumbers():
                 clearValues = lattice.clearChoiceByNumber(choiceNumber)
-                if not isEqualOrIn(len(clearValues),0):
+                if not isEqualOrIn(clearValues,0):
                     self.record.addRecord(RecordContent(actionType,lattice.getLatticeIndex(),clearValues,{"lineIndex":index,"choiceNumber":choiceNumber}))
                 return
 
@@ -204,7 +204,7 @@ class Sudoku(object):
             for teColumn in range(3):
                 lattice = self.getLattice(areaRow*3+teRow,areaColumn*3+teColumn)
                 clearValues = lattice.clearChoiceByExists(existNumbers) #排除格子的可选数
-                if not isEqualOrIn(len(clearValues),0):
+                if not isEqualOrIn(clearValues,0):
                     self.record.addRecord(RecordContent(ACTION_AREA_BASE,lattice.getLatticeIndex(),clearValues,{"existNumbers":existNumbers,"areaIndex":areaIndex}))
 
     def countChoicePointsByLine(self,lineIndex:int,isRow:bool)->list:
@@ -252,7 +252,7 @@ class Sudoku(object):
             latticeIndex = choicePoint[0]
             lattice = self.getLatticeByIndex(latticeIndex) #获取该格子下标
             clearValues = lattice.clearChoiceByNumber(choiceIndex+1) #清空该格子的其它数
-            if not isEqualOrIn(len(clearValues),0): #非零时表示有变动
+            if not isEqualOrIn(clearValues,0): #非零时表示有变动
                 self.record.addRecord(RecordContent(ACTION_AREA_ONLY_IN,latticeIndex,clearValues,{"choiceIndex":choiceIndex}))
             row,column = lattice.getLatticPoint()
             self.clearLineByIndex(row,choiceIndex,True,latticeIndex,ACTION_AREA_ONLY_LINE)
@@ -266,18 +266,18 @@ class Sudoku(object):
         choicePoints = self.countChoicePointsByArea(areaIndex)
         for choiceIndex in range(9):
             choicePoint = choicePoints[choiceIndex]
-            if isEqualOrIn(len(choicePoint),2,6):
+            if isEqualOrIn(choicePoint,2,6):
                 lineChecks = isTwoRowCloumns(choicePoint,isRow=isRow)#检查是否在同一行
                 #清除行
-                if isEqualOrIn(len(lineChecks),1):
+                if isEqualOrIn(lineChecks,1):
                     self.clearLineByIndex(lineChecks[0],choiceIndex,isRow=isRow,extraIndexs=choicePoint,actionType=ACTION_AREA_LINE_ONE)
-                elif isEqualOrIn(len(lineChecks),2): #只有两行时才需要处理
+                elif isEqualOrIn(lineChecks,2): #只有两行时才需要处理
                     nextAreaIndex = getNextArea(areaIndex,isRow=isRow) #获取下一宫下标
                     rowPoints = self.countChoicePointsByArea(nextAreaIndex)
                     rowPoint = rowPoints[choiceIndex]
-                    if isEqualOrIn(len(rowPoint),2,6):
+                    if isEqualOrIn(rowPoint,2,6):
                         nextLineChecks = isTwoRowCloumns(rowPoint,isRow=isRow)
-                        if isEqualOrIn(len(nextLineChecks),2) and isListContains(lineChecks,nextLineChecks):
+                        if isEqualOrIn(nextLineChecks,2) and isListContains(lineChecks,nextLineChecks):
                             for lineCheck in lineChecks:
                                 self.clearLineByArea(lineCheck,choiceIndex,isRow=isRow,extraAreas=[areaIndex,nextAreaIndex],extractInfo = lineChecks)
 
@@ -297,7 +297,7 @@ class Sudoku(object):
                     for latticeIndex in combinePoint:
                         lattice = self.getLatticeByIndex(latticeIndex)
                         clearValues = lattice.clearChoiceByIndexs(combineQueue)
-                        if not isEqualOrIn(len(clearValues),0):
+                        if not isEqualOrIn(clearValues,0):
                             self.record.addRecord(RecordContent(ACTION_AREA_COMBINE,lattice.getLatticeIndex(),clearValues,{"areaIndex":areaIndex,"combinePoint":combinePoint,"combineQueue":combineQueue}))
 
     def inferXWing(self,lineIndex:int,isRow:bool):
@@ -312,14 +312,72 @@ class Sudoku(object):
             checkPoints = self.countChoicePointsByLine(checkLine,isRow=isRow)
             for choiceIndex in choiceIndexs:
                 checkPoint = copy.deepcopy(checkPoints[choiceIndex])
-                if (not isEqualOrIn(len(checkPoint),2)) or (not isEqualOrIn(len(choicePoints[choiceIndex]),2)):
+                if (not isEqualOrIn(checkPoint,2)) or (not isEqualOrIn(choicePoints[choiceIndex],2)):
                     continue
                 checkPoint.extend(choicePoints[choiceIndex])
                 checkLines = isTwoRowCloumns(checkPoint,isRow=not isRow)
-                if not isEqualOrIn(len(checkLines),2):
+                if not isEqualOrIn(checkLines,2):
                     continue
                 self.clearLineByIndex(checkLines[0],choiceIndex,isRow=not isRow,extraIndexs=checkPoint,actionType=ACTION_X_WING)
                 self.clearLineByIndex(checkLines[1],choiceIndex,isRow=not isRow,extraIndexs=checkPoint,actionType=ACTION_X_WING)
+
+    def countChoicePointsByAll(self,count:int)->list[int]:
+        '''
+        获取对应可选数字剩余为count的格子的下标
+        '''
+        choicePoints = []
+        for latticeIndex in range(81):
+            if isEqualOrIn(self.getLatticeByIndex(latticeIndex).getValidChoices(),count):
+                choicePoints.append(latticeIndex)
+        return choicePoints
+
+    def isTwoAreas(self,combineQueue:list)->list[int]:
+        areaIndexs = []
+        for latticeIndex in combineQueue:
+            lattice = self.getLatticeByIndex(latticeIndex)
+            if lattice.getAreaIndex() not in areaIndexs:
+                areaIndexs.append(lattice.getAreaIndex())
+        return areaIndexs
+
+    def getXYWingChoice(self,combineQueue:list[int],isRow:bool)->dict:
+        xyWingInfo = {}
+        lattices = [self.getLatticeByIndex(latticeIndex) for latticeIndex in combineQueue]
+        lineIndexs = [lattice.getRowIndex() for lattice in lattices] if isRow else [lattice.getRowIndex() for lattice in lattices]
+        xyWingInfo["mainLine"] = lineIndexs[0] if lineIndexs[0]==lineIndexs[1] or lineIndexs[0]==lineIndexs[2] else lineIndexs[1] #获得主线
+
+    def inferXYWing(self):
+        '''
+        使用XYWING推测
+        '''
+        choicePoints = self.countChoicePointsByAll(2) #获取下标仅为2的格子
+        combineQueueSet = getCombination(choicePoints,3) #获取所有3*3组合可能
+        for combineQueue in combineQueueSet:
+            if self.isCombineLattice(choicePoints,combineQueue):
+                rowLines = isTwoRowCloumns(combineQueue,isRow=True) #判断是否分属两行
+                columnlines = isTwoRowCloumns(combineQueue,isRow=False)#判断是否分属两列
+                areaIndexs = self.isTwoAreas(combineQueue) #判断所属宫
+                if isEqualOrIn(areaIndexs,1): #在同一宫，属宫内组合的情况
+                    continue
+                elif isEqualOrIn(rowLines,1) or isEqualOrIn(columnlines,1): #在同一行/列，属行内组合情况
+                    continue
+                elif isEqualOrIn(rowLines,2) and isEqualOrIn(areaIndexs,2): #两行+两宫的情况
+                    pass
+                elif isEqualOrIn(columnlines,2) and isEqualOrIn(areaIndexs,2): #两列+两宫的情况
+                    pass
+                elif isEqualOrIn(columnlines,2) and isEqualOrIn(rowLines,2) and isEqualOrIn(areaIndexs,3):
+                    pass
+
+    def isEmptyRecord(self)->bool:
+        '''
+        判断记录是否为空
+        '''
+        return self.record.isEmpty()
+
+    def getRecordText(self,index:int=-1)->str:
+        '''
+        获取操作记录文本
+        '''
+        return self.record.getRecordInfo(index)
 
 def isListContains(contains:list,checks:list)->bool:
     '''
@@ -332,13 +390,14 @@ def isListContains(contains:list,checks:list)->bool:
             return False
     return True
 
-def isEqualOrIn(input:int,value:int,maxValue:int=None)->bool:
+def isEqualOrIn(input:list|int,value:int,maxValue:int=None)->bool:
     '''
     判断列表长度是否符合，若maxlength==None，则判断与length是否相等，否则判断范围是否在[length,maxLength]
     '''
+    size = input if isinstance(input,int) else len(input)
     if maxValue == None:
-        return input==value
-    return input>=value and input<=maxValue;
+        return size==value
+    return size>=value and size<=maxValue;
 
 def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
     '''
@@ -347,7 +406,7 @@ def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
     choiceIndexs = [] #记录有效数字
     for choiceIndex in range(9):
         choicePoint = choicePoints[choiceIndex]
-        if isEqualOrIn(len(choicePoint),minSize,maxSize):
+        if isEqualOrIn(choicePoint,minSize,maxSize):
             choiceIndexs.append(choiceIndex)
     return choiceIndexs
 
@@ -366,7 +425,6 @@ def getNextArea(areaIndex:int,isRow:bool)->int:
         return areaRow*3+(areaColumn+1)%3
     else:
         return ((areaRow+1)%3)*3+areaColumn
-
 
 def isTwoRowCloumns(indexList:list[int],isRow:bool)->list[int]:
     '''判断是否在同两行/列并返回'''
