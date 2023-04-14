@@ -156,7 +156,7 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
     清除选中效果
     '''
     for index in indexs:
-        lattice = sudoku.getLatticeByIndex(index)
+        lattice = sudoku.getLattice(index)
         if lattice==None:
             continue
         startX = cfg.canvasAlign+lattice.getColumnIndex()*cfg.latticeLength

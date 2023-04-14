@@ -97,3 +97,25 @@ def toColumn(latticeIndex:int)->int:
 def toArea(latticeIndex:int)->int:
     '''给定格子下标，返回格子所在宫下标'''
     return int(toRow(latticeIndex)/3)*3+int(toColumn(latticeIndex)/3)
+
+def toIndex(row:int,column)->int:
+    '''给定行数和列数，返回格子下标'''
+    return row*9+column
+
+def runAll()->int:
+    '''遍历所有格子下标'''
+    return [i for i in range(81)]
+
+def runLine(lineIndex:int, isRow:bool)->list[int]:
+    '''给定行/列数，返回所在行/列的所有格子下标'''
+    return [toIndex(lineIndex,teIndex) for teIndex in range(9)] if isRow else [toIndex(teIndex,lineIndex) for teIndex in range(9)]
+
+def runArea(areaIndex:int)->list[int]:
+    '''给定宫下标，返回所在宫的所有格子下标'''
+    rowStart = int(areaIndex/3)*3
+    columnStart = int(areaIndex%3)*3
+    indexs = []
+    for r in range(3):
+        for c in range(3):
+            indexs.append(toIndex(rowStart+r,columnStart+c))
+    return indexs

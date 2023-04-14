@@ -131,7 +131,7 @@ def clickControl(event,frame:SudokuFrame,sudoku:sd.Sudoku):
     '''
     index = dt.isMatchControl(event.x,event.y)
     if dt.hasSelect():
-        lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
+        lattice = sudoku.getLattice(dt.selectIndexs[0])
         if index==cfg.ctrlBlockedIndex: #锁定，解锁
             if lattice.canBlocked():
                 lattice.setBlock() #锁定
@@ -279,7 +279,7 @@ def reRenderLatticeSelect(frame:SudokuFrame,sudoku:sd.Sudoku):
         indexs = copy.deepcopy(dt.selectIndexs)
     for selectIndex in indexs:
         #渲染选中效果
-        lattice = sudoku.getLatticeByIndex(selectIndex)
+        lattice = sudoku.getLattice(selectIndex)
         threading.Thread(target=wr.renderLatticeSelect,args=[frame.getCanvas(),lattice],daemon=False).start()
 
 def reClearLatticeSelect(frame:SudokuFrame,sudoku:sd.Sudoku):
@@ -294,7 +294,7 @@ def reRenderCtrl(frame:SudokuFrame,sudoku:sd.Sudoku):
     重新渲染操作键
     '''
     if len(dt.selectIndexs)>0:
-        lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
+        lattice = sudoku.getLattice(dt.selectIndexs[0])
         if lattice!=None:
             threading.Thread(target=wr.renderCtrl,args=[frame.getCanvas(),cfg.ctrlBlockedIndex,{"isBlocked":lattice.isBlocked(),"canBlock":lattice.canBlocked()}]
                             ,daemon=False).start()
@@ -309,6 +309,6 @@ def reRenderNumberChoice(frame:SudokuFrame,sudoku:sd.Sudoku):
     重新渲染可选数区域
     '''
     if len(dt.selectIndexs)>0:
-        lattice = sudoku.getLatticeByIndex(dt.selectIndexs[0])
+        lattice = sudoku.getLattice(dt.selectIndexs[0])
         if lattice!=None:
             threading.Thread(target=wr.renderNumberChoice,args=[frame.getCanvas(),lattice.getChoiceNumbers(),lattice.isBlocked()],daemon=False).start()

@@ -10,8 +10,8 @@ class Lattice(object):
     '''格子的基本数据结构'''
 
     def __init__(self,latticeIndex:int) -> None:
-        '''
-        初始化
+        '''初始化
+        latticeIndex:当前格子下标
         '''
         self.latticeIndex = latticeIndex #第几个格子
         self.rowIndex = toRow(self.getLatticeIndex()) #第几行[0-8]
