@@ -36,7 +36,7 @@ class Sudoku(object):
         '''
         返回当前下标对应的格子
         '''
-        assert isEqualOrIn(latticeIndex,0,80), {"错误":"下标不合法"}
+        assert isBetween(latticeIndex,0,80), {"错误":"下标不合法"}
         return self.numberMatrix[latticeIndex]
 
     def setLatticeDisplay(self,latticIndex:int,displayNumber:int):
@@ -71,9 +71,8 @@ class Sudoku(object):
         清除某行/列格子的某可选数，不处理extraIndexs所在格子
         '''
         for latticeIndex in runLine(lineIndex,isRow):
-            lattice = self.getLattice(latticeIndex)
-            if (isinstance(extraIndexs,int) and latticeIndex!=extraIndexs) or (isinstance(extraIndexs,list) and latticeIndex not in extraIndexs):
-                if lattice.setChoiceEmpty(choiceIndex):
+            if not isEqualOrIn(latticeIndex,extraIndexs):
+                if self.getLattice(latticeIndex).setChoiceEmpty(choiceIndex):
                     self.record.addRecord(RecordContent(actionType,latticeIndex,choiceIndex,{"lineIndex":lineIndex,"isRow":isRow,"extraIndexs":extraIndexs}))
 
     def clearLineByArea(self,lineIndex:int,choiceIndex:int,isRow:bool,extraAreas:list[int]|int,extractInfo:any):
@@ -81,9 +80,8 @@ class Sudoku(object):
         清除某行/列格子的某可选数，不处理extraIndexs所在宫的格子
         '''
         for latticeIndex in runLine(lineIndex,isRow):
-            lattice = self.getLattice(latticeIndex)
-            if (isinstance(extraAreas,int) and lattice.getAreaIndex()==extraAreas) or lattice.getAreaIndex() not in extraAreas:
-                if lattice.setChoiceEmpty(choiceIndex):
+            if not isEqualOrIn(toArea(latticeIndex),extraAreas):
+                if self.getLattice(latticeIndex).setChoiceEmpty(choiceIndex):
                     self.record.addRecord(RecordContent(ACTION_AREA_LINE_TWO,latticeIndex,choiceIndex,{"isRow":isRow,"lineChecks":extractInfo,"extraAreas":extraAreas}))
 
     def inferLineChoiceBase(self,lineIndex:int,isRow:bool):
@@ -93,9 +91,8 @@ class Sudoku(object):
         existNumbers = self.getExistsByLine(lineIndex,isRow=isRow)#获取已填数列表，排除被标记为错误的
         #根据已填数列表排除可选数
         for latticeIndex in runLine(lineIndex,isRow):
-            lattice = self.getLattice(latticeIndex)
-            clearValue = lattice.clearChoiceByExists(existNumbers)
-            if not isEqualOrIn(clearValue,0):
+            clearValues = self.getLattice(latticeIndex).clearChoiceByExists(existNumbers)
+            if not isLenEqual(clearValues,0):
                 actionType = ACTION_ROW_LINE_BASE if isRow else ACTION_COLUMN_LINE_BASE
                 self.record.addRecord(RecordContent(actionType,lineIndex,existNumbers,{"lineIndex":lineIndex,"existNumbers":existNumbers}))
 
@@ -125,7 +122,7 @@ class Sudoku(object):
                     combinePoint = choicePoints[combineQueue[0]] #获得组合的格子
                     for latticeIndex in combinePoint:
                         clearValues = self.getLattice(latticeIndex).clearChoiceByIndexs(combineQueue)
-                        if not isEqualOrIn(clearValues,0):
+                        if not isLenEqual(clearValues,0):
                             self.record.addRecord(RecordContent(actionType,latticeIndex,clearValues,{"lineIndex":lineIndex,"combineQueue":combineQueue,"combinePoint":combinePoint}))
 
     def isCombineLattice(self,choicePoints:list,combineQueue:list[int])->bool:
@@ -174,7 +171,7 @@ class Sudoku(object):
             lattice = self.getLattice(latticeIndex)
             if choiceNumber in lattice.getChoiceNumbers():
                 clearValues = lattice.clearChoiceByNumber(choiceNumber)
-                if not isEqualOrIn(clearValues,0):
+                if not isLenEqual(clearValues,0):
                     self.record.addRecord(RecordContent(actionType,lattice.getLatticeIndex(),clearValues,{"lineIndex":lineIndex,"choiceNumber":choiceNumber}))
                 return
 
@@ -198,7 +195,7 @@ class Sudoku(object):
         for latticeIndex in runArea(areaIndex):
             lattice = self.getLattice(latticeIndex)
             clearValues = lattice.clearChoiceByExists(existNumbers) #排除格子的可选数
-            if not isEqualOrIn(clearValues,0):
+            if not isLenEqual(clearValues,0):
                 self.record.addRecord(RecordContent(ACTION_AREA_BASE,lattice.getLatticeIndex(),clearValues,{"existNumbers":existNumbers,"areaIndex":areaIndex}))
 
     def countChoicePointsByLine(self,lineIndex:int,isRow:bool)->list:
@@ -244,7 +241,7 @@ class Sudoku(object):
             latticeIndex = choicePoint[0]
             lattice = self.getLattice(latticeIndex) #获取该格子下标
             clearValues = lattice.clearChoiceByNumber(choiceIndex+1) #清空该格子的其它数
-            if not isEqualOrIn(clearValues,0): #非零时表示有变动
+            if not isLenEqual(clearValues,0): #非零时表示有变动
                 self.record.addRecord(RecordContent(ACTION_AREA_ONLY_IN,latticeIndex,clearValues,{"choiceIndex":choiceIndex}))
             row,column = lattice.getLatticPoint()
             self.clearLineByIndex(row,choiceIndex,True,latticeIndex,ACTION_AREA_ONLY_LINE)
@@ -258,18 +255,18 @@ class Sudoku(object):
         choicePoints = self.countChoicePointsByArea(areaIndex)
         for choiceIndex in range(9):
             choicePoint = choicePoints[choiceIndex]
-            if isEqualOrIn(choicePoint,2,6):
+            if isLenBetween(choicePoint,2,6):
                 lineChecks = isTwoRowCloumns(choicePoint,isRow=isRow)#检查是否在同一行
                 #清除行
-                if isEqualOrIn(lineChecks,1):
+                if isLenEqual(lineChecks,1):
                     self.clearLineByIndex(lineChecks[0],choiceIndex,isRow=isRow,extraIndexs=choicePoint,actionType=ACTION_AREA_LINE_ONE)
-                elif isEqualOrIn(lineChecks,2): #只有两行时才需要处理
-                    nextAreaIndex = getNextArea(areaIndex,isRow=isRow) #获取下一宫下标
+                elif isLenEqual(lineChecks,2): #只有两行时才需要处理
+                    nextAreaIndex = nextArea(areaIndex,isRow=isRow) #获取下一宫下标
                     rowPoints = self.countChoicePointsByArea(nextAreaIndex)
                     rowPoint = rowPoints[choiceIndex]
-                    if isEqualOrIn(rowPoint,2,6):
+                    if isLenBetween(rowPoint,2,6):
                         nextLineChecks = isTwoRowCloumns(rowPoint,isRow=isRow)
-                        if isEqualOrIn(nextLineChecks,2) and isListContains(lineChecks,nextLineChecks):
+                        if isLenEqual(nextLineChecks,2) and isListContains(lineChecks,nextLineChecks):
                             for lineCheck in lineChecks:
                                 self.clearLineByArea(lineCheck,choiceIndex,isRow=isRow,extraAreas=[areaIndex,nextAreaIndex],extractInfo = lineChecks)
 
@@ -287,16 +284,15 @@ class Sudoku(object):
                 if self.isCombineLattice(choicePoints,combineQueue): #满足组合条件
                     combinePoint = choicePoints[combineQueue[0]] #获得组合的格子
                     for latticeIndex in combinePoint:
-                        lattice = self.getLattice(latticeIndex)
-                        clearValues = lattice.clearChoiceByIndexs(combineQueue)
-                        if not isEqualOrIn(clearValues,0):
-                            self.record.addRecord(RecordContent(ACTION_AREA_COMBINE,lattice.getLatticeIndex(),clearValues,{"areaIndex":areaIndex,"combinePoint":combinePoint,"combineQueue":combineQueue}))
+                        clearValues = self.getLattice(latticeIndex).clearChoiceByIndexs(combineQueue)
+                        if not isLenEqual(clearValues,0):
+                            self.record.addRecord(RecordContent(ACTION_AREA_COMBINE,latticeIndex,clearValues,{"areaIndex":areaIndex,"combinePoint":combinePoint,"combineQueue":combineQueue}))
 
     def inferXWing(self,lineIndex:int,isRow:bool):
         '''
         若某一数分别在两行/列的两个格子中可填，且属同两列/行，则对应列/行影响范围内的格子排除该可选数
         '''
-        if isEqualOrIn(lineIndex,8):
+        if lineIndex == 8:
             return #最后一行/列，不用处理
         choicePoints=self.countChoicePointsByLine(lineIndex,isRow=isRow)
         choiceIndexs = getValidIndexs(choicePoints,2,2)
@@ -304,11 +300,11 @@ class Sudoku(object):
             checkPoints = self.countChoicePointsByLine(checkLine,isRow=isRow)
             for choiceIndex in choiceIndexs:
                 checkPoint = copy.deepcopy(checkPoints[choiceIndex])
-                if (not isEqualOrIn(checkPoint,2)) or (not isEqualOrIn(choicePoints[choiceIndex],2)):
+                if (not isLenEqual(checkPoint,2)) or (not isLenEqual(choicePoints[choiceIndex],2)):
                     continue
                 checkPoint.extend(choicePoints[choiceIndex])
                 checkLines = isTwoRowCloumns(checkPoint,isRow=not isRow)
-                if not isEqualOrIn(checkLines,2):
+                if not isLenEqual(checkLines,2):
                     continue
                 self.clearLineByIndex(checkLines[0],choiceIndex,isRow=not isRow,extraIndexs=checkPoint,actionType=ACTION_X_WING)
                 self.clearLineByIndex(checkLines[1],choiceIndex,isRow=not isRow,extraIndexs=checkPoint,actionType=ACTION_X_WING)
@@ -319,16 +315,16 @@ class Sudoku(object):
         '''
         choicePoints = []
         for latticeIndex in runAll():
-            if isEqualOrIn(self.getLattice(latticeIndex).getValidChoices(),count):
+            if isLenEqual(self.getLattice(latticeIndex).getValidChoices(),count):
                 choicePoints.append(latticeIndex)
         return choicePoints
 
     def isTwoAreas(self,combineQueue:list)->list[int]:
         areaIndexs = []
         for latticeIndex in combineQueue:
-            lattice = self.getLattice(latticeIndex)
-            if lattice.getAreaIndex() not in areaIndexs:
-                areaIndexs.append(lattice.getAreaIndex())
+            areaIndex = toArea(latticeIndex)
+            if areaIndex not in areaIndexs:
+                areaIndexs.append(areaIndex)
         return areaIndexs
 
     def getXYWingChoice(self,combineQueue:list[int],isRow:bool)->dict:
@@ -348,15 +344,15 @@ class Sudoku(object):
                 rowLines = isTwoRowCloumns(combineQueue,isRow=True) #判断是否分属两行
                 columnlines = isTwoRowCloumns(combineQueue,isRow=False)#判断是否分属两列
                 areaIndexs = self.isTwoAreas(combineQueue) #判断所属宫
-                if isEqualOrIn(areaIndexs,1): #在同一宫，属宫内组合的情况
+                if isLenEqual(areaIndexs,1): #在同一宫，属宫内组合的情况
                     continue
-                elif isEqualOrIn(rowLines,1) or isEqualOrIn(columnlines,1): #在同一行/列，属行内组合情况
+                elif isLenEqual(rowLines,1) or isLenEqual(columnlines,1): #在同一行/列，属行内组合情况
                     continue
-                elif isEqualOrIn(rowLines,2) and isEqualOrIn(areaIndexs,2): #两行+两宫的情况
+                elif isLenEqual(rowLines,2) and isLenEqual(areaIndexs,2): #两行+两宫的情况
                     pass
-                elif isEqualOrIn(columnlines,2) and isEqualOrIn(areaIndexs,2): #两列+两宫的情况
+                elif isLenEqual(columnlines,2) and isLenEqual(areaIndexs,2): #两列+两宫的情况
                     pass
-                elif isEqualOrIn(columnlines,2) and isEqualOrIn(rowLines,2) and isEqualOrIn(areaIndexs,3):
+                elif isLenEqual(columnlines,2) and isLenEqual(rowLines,2) and isLenEqual(areaIndexs,3):
                     pass
 
     def isEmptyRecord(self)->bool:
@@ -370,105 +366,3 @@ class Sudoku(object):
         获取操作记录文本
         '''
         return self.record.getRecordInfo(index)
-
-def isListContains(contains:list,checks:list)->bool:
-    '''
-    判断checks中的每一项是否出现在contains中
-    '''
-    if checks==None or len(checks)<1:
-        return False
-    for item in checks:
-        if item not in contains:
-            return False
-    return True
-
-def isEqualOrIn(input:list|int,value:int,maxValue:int=None)->bool:
-    '''
-    判断列表长度是否符合，若maxlength==None，则判断与length是否相等，否则判断范围是否在[length,maxLength]
-    '''
-    size = input if isinstance(input,int) else len(input)
-    if maxValue == None:
-        return size==value
-    return size>=value and size<=maxValue;
-
-def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
-    '''
-    记录有效数字下标
-    '''
-    choiceIndexs = [] #记录有效数字
-    for choiceIndex in range(9):
-        choicePoint = choicePoints[choiceIndex]
-        if isEqualOrIn(choicePoint,minSize,maxSize):
-            choiceIndexs.append(choiceIndex)
-    return choiceIndexs
-
-def getAreaStartPoint(areaIndex:int)->tuple:
-    '''
-    获得该宫的起始坐标
-    '''
-    return (int(areaIndex/3),int(areaIndex%3))
-
-def getNextArea(areaIndex:int,isRow:bool)->int:
-    '''
-    获得当宫的下一行/列的宫
-    '''
-    areaRow,areaColumn = getAreaStartPoint(areaIndex) #宫起始坐标
-    if isRow:
-        return areaRow*3+(areaColumn+1)%3
-    else:
-        return ((areaRow+1)%3)*3+areaColumn
-
-def isTwoRowCloumns(indexList:list[int],isRow:bool)->list[int]:
-    '''判断是否在同两行/列并返回'''
-    if indexList==None or len(indexList)==0:
-        return []
-    countIndexs = []
-    for index in indexList:
-        countIndex = int(index/9) if isRow else int(index%9)
-        if countIndex not in countIndexs:
-            countIndexs.append(countIndex)
-    return countIndexs
-
-def getCombination(numberList:list[int],combineCount:int)->list:
-    '''
-    一、返回给定集合的组合集，若combineCount=2，则为两两组合不重复的集
-    1，存储所有组合可能的集为combineList
-    2，存储当前遍历下标的集为indexList，且len=组合数，初始值为0，1，2依次递增
-    3，开始循环，直至indexList(0)=数集长度-组合数；
-    4，将当前indexList所指的数作为一次组合添加进combineList中。
-    5，执行indexList的自增
-    6，循环结束，将当前indexList所指的数作为一次组合添加进combineList中，
-    7，返回组合集combineList
-
-    二，indexList的自增
-    1，开始循环，从0到组合减1，变量名为time
-    2，若当前位的下标值指的不是最后一位，且后一位的下标不等于当前下标值+1，则自增；后续的下标值为当前值递增
-    3，若是最后一位，则访问前一位
-    '''
-    if len(numberList)<combineCount: #不符合组合条件
-        return None
-    if combineCount<=1: #已组合或不用组合
-        return copy.deepcopy(numberList)
-    combineList = []
-    indexList = [i for i in range(combineCount)]
-    while indexList[0]<len(numberList)-combineCount:
-        combineList.append([numberList[i] for i in indexList])
-        #indexList自增
-        tIndex = combineCount-1 #index当前处理的下标
-        while tIndex>=0:
-            if tIndex == combineCount-1: #最后一项
-                if indexList[tIndex]< len(numberList)-1:
-                    indexList[tIndex]+=1 #自增成功
-                    break
-                else:
-                    tIndex-=1 #自增失败，切换至上一个下标处理
-            else: #非最后一项
-                if indexList[tIndex]<indexList[tIndex+1]-1: #可自增
-                    teIndexValue = indexList[tIndex]
-                    for addIndex in range(combineCount-tIndex):
-                        indexList[tIndex+addIndex]=teIndexValue+1+addIndex #当前及后续下标顺序递增
-                    break
-                else: #不可自增
-                    tIndex-=1
-    combineList.append([numberList[i] for i in indexList])
-    return combineList

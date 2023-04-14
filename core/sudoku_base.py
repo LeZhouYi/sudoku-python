@@ -1,4 +1,5 @@
 #coding=utf-8
+import copy
 
 class LatticeStatus(object):
     '''格子状态'''
@@ -112,10 +113,103 @@ def runLine(lineIndex:int, isRow:bool)->list[int]:
 
 def runArea(areaIndex:int)->list[int]:
     '''给定宫下标，返回所在宫的所有格子下标'''
-    rowStart = int(areaIndex/3)*3
-    columnStart = int(areaIndex%3)*3
+    rowStart,columnStart = int(areaIndex/3)*3,int(areaIndex%3)*3
     indexs = []
     for r in range(3):
         for c in range(3):
             indexs.append(toIndex(rowStart+r,columnStart+c))
     return indexs
+
+def nextArea(areaIndex:int,isRow:bool)->int:
+    '''获得当宫的下一行/列的宫下标'''
+    areaRow,areaColumn = int(areaIndex/3),int(areaIndex%3) #宫起始坐标
+    return areaRow*3+(areaColumn+1)%3 if isRow else ((areaRow+1)%3)*3+areaColumn
+
+def getCombination(numberList:list[int],combineCount:int)->list:
+    '''
+    一、返回给定集合的组合集，若combineCount=2，则为两两组合不重复的集
+    1，存储所有组合可能的集为combineList
+    2，存储当前遍历下标的集为indexList，且len=组合数，初始值为0，1，2依次递增
+    3，开始循环，直至indexList(0)=数集长度-组合数；
+    4，将当前indexList所指的数作为一次组合添加进combineList中。
+    5，执行indexList的自增
+    6，循环结束，将当前indexList所指的数作为一次组合添加进combineList中，
+    7，返回组合集combineList
+
+    二，indexList的自增
+    1，开始循环，从0到组合减1，变量名为time
+    2，若当前位的下标值指的不是最后一位，且后一位的下标不等于当前下标值+1，则自增；后续的下标值为当前值递增
+    3，若是最后一位，则访问前一位
+    '''
+    if len(numberList)<combineCount: #不符合组合条件
+        return None
+    if combineCount<=1: #已组合或不用组合
+        return copy.deepcopy(numberList)
+    combineList = []
+    indexList = [i for i in range(combineCount)]
+    while indexList[0]<len(numberList)-combineCount:
+        combineList.append([numberList[i] for i in indexList])
+        #indexList自增
+        tIndex = combineCount-1 #index当前处理的下标
+        while tIndex>=0:
+            if tIndex == combineCount-1: #最后一项
+                if indexList[tIndex]< len(numberList)-1:
+                    indexList[tIndex]+=1 #自增成功
+                    break
+                else:
+                    tIndex-=1 #自增失败，切换至上一个下标处理
+            else: #非最后一项
+                if indexList[tIndex]<indexList[tIndex+1]-1: #可自增
+                    teIndexValue = indexList[tIndex]
+                    for addIndex in range(combineCount-tIndex):
+                        indexList[tIndex+addIndex]=teIndexValue+1+addIndex #当前及后续下标顺序递增
+                    break
+                else: #不可自增
+                    tIndex-=1
+    combineList.append([numberList[i] for i in indexList])
+    return combineList
+
+def isLenEqual(inList:list,length:int)->bool:
+    return len(inList)==length
+
+def isLenBetween(inList:list,minLength:int,maxLength:int)->bool:
+    return len(inList)>=minLength and len(inList)<=maxLength
+
+def isBetween(value:int,minValue:int,maxValue:int)->bool:
+    return value>=minValue and value<=maxValue
+
+def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
+    '''
+    记录有效数字下标
+    '''
+    choiceIndexs = [] #记录有效数字
+    for choiceIndex in range(9):
+        choicePoint = choicePoints[choiceIndex]
+        if isLenBetween(choicePoint,minSize,maxSize):
+            choiceIndexs.append(choiceIndex)
+    return choiceIndexs
+
+def isListContains(contains:list,checks:list)->bool:
+    '''
+    判断checks中的每一项是否出现在contains中
+    '''
+    if checks==None or len(checks)<1:
+        return False
+    for item in checks:
+        if item not in contains:
+            return False
+    return True
+
+def isTwoRowCloumns(indexList:list[int],isRow:bool)->list[int]:
+    '''判断是否在同两行/列并返回'''
+    if indexList==None or len(indexList)==0:
+        return []
+    countIndexs = []
+    for index in indexList:
+        countIndex = toRow(index) if isRow else toColumn(index)
+        if countIndex not in countIndexs:
+            countIndexs.append(countIndex)
+    return countIndexs
+
+def isEqualOrIn(value:int,checks:int|list):
+    return (isinstance(checks,int) and value==checks) or (isinstance(checks,list) and value in checks)
