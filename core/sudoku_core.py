@@ -1,6 +1,9 @@
+#coding=utf-8
+
 import copy
 from core.sudoku_lattice import *
 from core.sudoku_record import *
+from core.sudoku_base import *
 
 '''
 数独整体数据结构
@@ -151,7 +154,7 @@ class Sudoku(object):
             lattice = self.getLattice(index,teIndex) if isRow else self.getLattice(teIndex,index)
             if lattice.isDisplayEmpty():
                 for choiceNumber in lattice.getChoiceNumbers():
-                    if choiceNumber!=NUMBER_EMPTY:
+                    if not LatticeValue.isEmpty(choiceNumber):
                         choiceNumberCounts[choiceNumber-1]+=1
         return choiceNumberCounts
 
@@ -219,7 +222,7 @@ class Sudoku(object):
                 choicePoints[choiceNumber-1].append(lattice.getLatticeIndex())#记录当前可选数的格子位置
         #清空已填写数的位置
         for number in existNumbers:
-            if number!=NUMBER_EMPTY:
+            if not LatticeValue.isEmpty(number):
                 choicePoints[number-1]=[]
         return choicePoints
 

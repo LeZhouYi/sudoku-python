@@ -1,33 +1,26 @@
+#coding=utf-8
+
 import threading
 import copy
 from config import data as dt
 from config import config as cfg
+from core.sudoku_base import *
 
-NUMBER_EMPTY = 0 #表示格子未填数时的空值
-
-STATUS_EMPTY = 0 #未填入数字
-STATUS_WRITTEN = 1 #已填入数字
-STATUS_BLOCKED = 2 #已填入数字且锁定，表示不可更改
-STATUS_EMPTY_CHOICE = 3 #未填入数字但已无可选数
-STATUS_EXIST_1 = 4 #已填入数字但与其它数字冲突，对应状态=1转换而来的错误
-STATUS_EXIST_2 = 5 #已填入数字但与其它数字冲突，对应状态=2转换而来的错误
-'''
-格子的基本数据结构
-'''
 class Lattice(object):
+    '''格子的基本数据结构'''
 
     def __init__(self,latticeIndex:int) -> None:
         '''
         初始化
         '''
         self.latticeIndex = latticeIndex #第几个格子
-        self.rowIndex = int(self.getLatticeIndex()/9) #第几行[0-8]
-        self.columnIndex = int(self.getLatticeIndex()%9) #第几列[0-8]
-        self.areaIndex = int(self.getRowIndex()/3)*3+int(self.getColumnIndex()/3)#第几宫
+        self.rowIndex = toRow(self.getLatticeIndex()) #第几行[0-8]
+        self.columnIndex = toColumn(self.getLatticeIndex()) #第几列[0-8]
+        self.areaIndex = toArea(self.getLatticeIndex())#第几宫
         self.lock = threading.Lock()
         self.choiceNumbers = [i+1 for i in range(9)] #可选择的数字,若该数字不可选，则为0
-        self.displayNumber = NUMBER_EMPTY #展示的数字
-        self.status = STATUS_EMPTY #表示当前格子的状态
+        self.displayNumber = LatticeValue.empty() #展示的数字
+        self.status = LatticeStatus.empty() #表示当前格子的状态
 
     def getLatticPoint(self)->tuple:
         '''
@@ -93,7 +86,7 @@ class Lattice(object):
         choices = []
         if not self.isWritten():
             for choice in self.choiceNumbers:
-                if choice != NUMBER_EMPTY:
+                if not LatticeValue.isEmpty(choice):
                     choices.append(choice)
         return choices
 
@@ -101,61 +94,57 @@ class Lattice(object):
         '''
         True=当前格子被锁定
         '''
-        return self.isStatusEqual(STATUS_BLOCKED) or self.isStatusEqual(STATUS_EXIST_2)
+        return LatticeStatus.isBlocked(self.status) or LatticeStatus.isExistBlocked(self.status)
 
     def canBlocked(self)->bool:
         '''
         True=当前格子可以被锁定
         '''
-        return self.isStatusEqual(STATUS_WRITTEN) or self.isStatusEqual(STATUS_EXIST_1)
+        return LatticeStatus.isWritten(self.status) or LatticeStatus.isExistWritten(self.status)
 
     def canClear(self)->bool:
         '''
         True=当前格子可以被擦除
         '''
-        return self.isStatusEqual(STATUS_WRITTEN) or self.isStatusEqual(STATUS_EXIST_1)
+        return LatticeStatus.isWritten(self.status) or LatticeStatus.isExistWritten(self.status)
 
     def isWritten(self)->bool:
         '''
         True=当前格子可以被写入数字
         '''
-        return self.isStatusEqual(STATUS_WRITTEN) or self.isStatusEqual(STATUS_BLOCKED)
+        return LatticeStatus.isWritten(self.status) or LatticeStatus.isBlocked(self.status)
 
     def setStatus(self,status:int):
         '''设定状态'''
         with self.lock:
             self.status=status
 
-    def isStatusEqual(self,status)->bool:
-        '''判定当前状态是否相符'''
-        return self.status==status
-
     def setBlock(self):
         '''
         锁定当前格子
         '''
-        if self.isStatusEqual(STATUS_WRITTEN): #写入正确的数时
-            self.setStatus(STATUS_BLOCKED)
-        elif self.isStatusEqual(STATUS_EXIST_1): #写入错误的数时
-            self.setStatus(STATUS_EXIST_2)
+        if LatticeStatus.isWritten(self.status): #写入正确的数时
+            self.setStatus(LatticeStatus.blocked())
+        elif LatticeStatus.isExistWritten(self.status): #写入错误的数时
+            self.setStatus(LatticeStatus.existWritten())
 
     def setUnlock(self):
         '''
         解锁当前格子
         '''
-        if self.isStatusEqual(STATUS_EXIST_2): #锁定的数是错误时
-            self.setStatus(STATUS_EXIST_1)
-        elif self.isStatusEqual(STATUS_BLOCKED): #锁定的数是正确时
-            self.setStatus(STATUS_WRITTEN)
+        if LatticeStatus.isExistBlocked(self.status): #锁定的数是错误时
+            self.setStatus(LatticeStatus.existWritten())
+        elif LatticeStatus.isBlocked(self.status): #锁定的数是正确时
+            self.setStatus(LatticeStatus.written())
 
     def clearDisplay(self)->bool:
         '''
         擦除当前格子写入的数
         '''
         if self.canClear():
-            self.setDisplay(NUMBER_EMPTY) #擦除
+            self.setDisplay(LatticeValue.empty()) #擦除
             self.initChoices() #恢复可选数
-            self.setStatus(STATUS_EMPTY) #更新状态
+            self.setStatus(LatticeStatus.empty()) #更新状态
             return True
         return False
 
@@ -171,7 +160,7 @@ class Lattice(object):
         清空可选数
         '''
         with self.lock:
-            self.choiceNumbers = [NUMBER_EMPTY for i in range(9)]
+            self.choiceNumbers = [LatticeValue.empty() for i in range(9)]
 
     def setDisplay(self,displayNumber:int)->bool:
         '''
@@ -181,7 +170,7 @@ class Lattice(object):
             with self.lock:
                 self.displayNumber = displayNumber  #设置显示的数字
             self.clearChoices() #清空可选数
-            self.setStatus(STATUS_WRITTEN) #更新状态
+            self.setStatus(LatticeStatus.written()) #更新状态
             return True #输入成功
         return False #输入失败
 
@@ -190,7 +179,7 @@ class Lattice(object):
         将某个可选数添加回当前格子的可选数列表中
         '''
         if numberChoice>=1 and numberChoice<=9:
-            if self.isStatusEqual(STATUS_EMPTY) or self.isStatusEqual(STATUS_EMPTY_CHOICE):
+            if LatticeStatus.isEmpty(self.status) or LatticeStatus.isEmptyChoice(self.status):
                 with self.lock:
                     self.choiceNumbers[numberChoice-1]=numberChoice
 
@@ -204,7 +193,7 @@ class Lattice(object):
         '''
         判断当前是否未填入数
         '''
-        return self.displayNumber==NUMBER_EMPTY
+        return LatticeValue.isEmpty(self.displayNumber)
 
     def setChoiceEmpty(self,choiceIndex:int)->bool:
         '''
@@ -213,7 +202,7 @@ class Lattice(object):
         assert choiceIndex>=0 and choiceIndex<9
         if self.isInChoices(choiceIndex):
             with self.lock:
-                self.choiceNumbers[choiceIndex]=NUMBER_EMPTY
+                self.choiceNumbers[choiceIndex]=LatticeValue.empty()
             return True
         return False
 
