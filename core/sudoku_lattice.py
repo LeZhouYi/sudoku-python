@@ -14,9 +14,9 @@ class Lattice(object):
         latticeIndex:当前格子下标
         '''
         self.latticeIndex = latticeIndex #第几个格子
-        self.rowIndex = toRow(self.getLatticeIndex()) #第几行[0-8]
-        self.columnIndex = toColumn(self.getLatticeIndex()) #第几列[0-8]
-        self.areaIndex = toArea(self.getLatticeIndex())#第几宫
+        self.rowIndex = toRow(self.latticeIndex) #第几行[0-8]
+        self.columnIndex = toColumn(self.latticeIndex) #第几列[0-8]
+        self.areaIndex = toArea(self.latticeIndex)#第几宫
         self.lock = threading.Lock()
         self.choiceNumbers = [i+1 for i in range(9)] #可选择的数字,若该数字不可选，则为0
         self.displayNumber = LatticeValue.empty() #展示的数字
@@ -51,8 +51,8 @@ class Lattice(object):
         pointY:当前纵坐标
         offset:允许范围内的误差
         '''
-        diffX = pointX-dt.latticePoints[self.getLatticeIndex()][0]
-        diffY = pointY-dt.latticePoints[self.getLatticeIndex()][1]
+        diffX = pointX-dt.latticePoints[self.latticeIndex][0]
+        diffY = pointY-dt.latticePoints[self.latticeIndex][1]
         return diffX>=-cfg.latticeOffset and diffX<=cfg.latticeOffset and diffY>=-cfg.latticeOffset and diffY <=cfg.latticeOffset
 
     def getRowIndex(self)->int:
