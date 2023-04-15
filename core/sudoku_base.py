@@ -170,18 +170,19 @@ def getCombination(numberList:list[int],combineCount:int)->list:
     return combineList
 
 def isLenEqual(inList:list,length:int)->bool:
+    '''列表的长度是否相等'''
     return len(inList)==length
 
 def isLenBetween(inList:list,minLength:int,maxLength:int)->bool:
+    '''列表长度是否在范围内'''
     return len(inList)>=minLength and len(inList)<=maxLength
 
 def isBetween(value:int,minValue:int,maxValue:int)->bool:
+    '''是否在范围内'''
     return value>=minValue and value<=maxValue
 
 def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
-    '''
-    记录有效数字下标
-    '''
+    '''记录有效数字下标'''
     choiceIndexs = [] #记录有效数字
     for choiceIndex in range(9):
         choicePoint = choicePoints[choiceIndex]
@@ -190,9 +191,7 @@ def getValidIndexs(choicePoints:list,minSize:int,maxSize:int)->list[int]:
     return choiceIndexs
 
 def isListContains(contains:list,checks:list)->bool:
-    '''
-    判断checks中的每一项是否出现在contains中
-    '''
+    '''判断checks中的每一项是否出现在contains中'''
     if checks==None or len(checks)<1:
         return False
     for item in checks:
@@ -212,4 +211,8 @@ def isTwoRowCloumns(indexList:list[int],isRow:bool)->list[int]:
     return countIndexs
 
 def isEqualOrIn(value:int,checks:int|list):
+    '''
+    若checks为Int，则判断是否相等
+    若checks为list，则判断value是否在list中
+    '''
     return (isinstance(checks,int) and value==checks) or (isinstance(checks,list) and value in checks)

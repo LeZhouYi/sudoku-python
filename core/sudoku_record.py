@@ -1,4 +1,5 @@
 #coding=utf-8
+from core.sudoku_base import *
 
 ACTION_INPUT_NUMBER = 0
 ACTION_CLEAR_NUMBER = 1
@@ -16,10 +17,8 @@ ACTION_AREA_ONLY_LINE = 12 #宫唯一推测
 ACTION_AREA_COMBINE = 13 #宫组合推测
 ACTION_X_WING = 15 #X-WING推测
 
-'''
-用于记录操作记录具体内容的数据结构
-'''
 class RecordContent(object):
+    '''用于记录操作记录具体内容的数据结构'''
 
     def __init__(self,actionType:int,index:int,valueList:list[int]|int,extract:any) -> None:
         self.actionType = actionType #动作类型
@@ -68,7 +67,7 @@ class RecordContent(object):
             self.info = "【宫基础】因第%d宫存在数字%s，清空%s格子的可选数字%s"%(self.extract["areaIndex"]+1,self.extract["existNumbers"],
                             self.getIndexText(self.index),self.valueList)
         elif self.isAction(ACTION_AREA_LINE_ONE):
-            areaIndex = self.getAreaIndex(self.extract["extraIndexs"][0])
+            areaIndex = toArea(self.extract["extraIndexs"][0])
             pointList = ""
             for value in self.extract["extraIndexs"]:
                 pointList+=self.getIndexText(value)
@@ -83,15 +82,15 @@ class RecordContent(object):
             lineIndexs = self.extract["lineChecks"]
             if self.extract["isRow"]:
                 self.info = "【宫两行】因第%d,%d宫中数字[%d]只在第%d,%d行中可填，清空第%d宫中%s格子的可选数字[%d]"%(areaIndexs[0]+1,areaIndexs[1]+1,self.valueList+1,
-                                lineIndexs[0]+1,lineIndexs[1]+1,self.getAreaIndex(self.index),self.getIndexText(self.index),self.valueList+1)
+                                lineIndexs[0]+1,lineIndexs[1]+1,toArea(self.index),self.getIndexText(self.index),self.valueList+1)
             else:
                 self.info = "【宫两列】因第%d,%d宫中数字[%d]只在第%d,%d列中可填，清空第%d宫中%s格子的可选数字[%d]"%(areaIndexs[0]+1,areaIndexs[1]+1,self.valueList+1,
-                                lineIndexs[0]+1,lineIndexs[1]+1,self.getAreaIndex(self.index),self.getIndexText(self.index),self.valueList+1)
+                                lineIndexs[0]+1,lineIndexs[1]+1,toArea(self.index),self.getIndexText(self.index),self.valueList+1)
         elif self.isAction(ACTION_AREA_ONLY_IN):
-            self.info = "【宫唯一】因第%d宫中数字[%d]只在%s格子可填，清空该格子的可选数字%s"%(self.getAreaIndex(self.index)+1,self.extract["choiceIndex"],
+            self.info = "【宫唯一】因第%d宫中数字[%d]只在%s格子可填，清空该格子的可选数字%s"%(toArea(self.index)+1,self.extract["choiceIndex"],
                                 self.getIndexText(self.index),self.valueList)
         elif self.isAction(ACTION_AREA_ONLY_LINE):
-            areaIndex = self.getAreaIndex(self.extract["extraIndexs"])
+            areaIndex = toArea(self.extract["extraIndexs"])
             pointText = self.getIndexText(self.extract["extraIndexs"])
             if self.extract["isRow"]:
                 self.info = "【宫唯一】因第%d宫中数字[%d]只在%s格子可填，清空%s格子的可选数字[%s]"%(areaIndex+1,self.valueList+1,pointText,self.getIndexText(self.index),self.valueList+1)
@@ -116,40 +115,38 @@ class RecordContent(object):
                                 self.getIndexText(self.index),self.valueList+1)
         print(self.info)
 
-    def getAreaIndex(self,index)->int:
-        row,column= int(index/9),index%9
-        areaIndex = int(row/3)*3 + column%3
-        return areaIndex
-
     def getIndexFull(self,index:int)->str:
-        row,column= int(index/9),index%9
-        areaIndex = int(row/3)*3 + column%3
-        return "%d行%d列%s宫"%(row+1,column+1,areaIndex+1)
+        '''返回格子下标对应格子的完整信息'''
+        return "%d行%d列%s宫"%(toRow(index)+1,toColumn(index)+1,toArea(index)+1)
 
     def getIndexText(self,index:int)->str:
-        return "[%d,%d]"%(int(index/9)+1,index%9+1)
+        '''返回格子下标对应的行/列信息'''
+        return "[%d,%d]"%(toRow(index)+1,toColumn(index)+1)
 
     def isAction(self,actionType:int):
+        '''判断是否一样的操作'''
         return self.actionType == actionType
 
     def getInfo(self)->str:
+        '''返回操作日志文本'''
         return self.info
 
-'''
-用于储存sudoku操作记录的数据结构
-'''
 class Record(object):
+    '''用于储存sudoku操作记录的数据结构'''
 
     def __init__(self) -> None:
         self.actionList = []
 
     def addRecord(self,content:RecordContent):
+        '''添加记录'''
         self.actionList.append(content)
 
     def isEmpty(self)->bool:
+        '''判断当前记录是否为空'''
         return len(self.actionList)==0
 
     def getRecordInfo(self,index:int)->str:
+        '''获得当前下标所对应的记录信息'''
         if index>=0 and index<len(self.actionList):
             return self.actionList[index].getInfo()
         elif index<0 and index>-len(self.actionList):

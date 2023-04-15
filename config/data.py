@@ -36,12 +36,45 @@ for r in range(cfg.ctrlFloorAmout):
         ctrlPoints.append([cfg.ctrlStartX+cfg.ctrlOffsetX+cfg.ctrlLength*c,
                         cfg.ctrlStartY+cfg.ctrlOffsetY+cfg.ctrlHeight*r])
 
+def updateInfo():
+    '''更新是否提示状态'''
+    global isInfoLock,isInfo
+    with isInfoLock:
+        isInfo = not isInfo
+
+def setSelect(index:int)->None:
+    '''设置选中格子'''
+    global selectLock,selectIndexs
+    with selectLock:
+        selectIndexs = [index]
+
+def isSelectOnly(index:int)->None:
+    '''判断当前格子是否是唯一已选'''
+    global selectIndexs
+    return index in selectIndexs and len(selectIndexs)==1
+
+def updateRunInfer()->bool:
+    '''更新是否显示可进行推测状态'''
+    global isRunInferLock,isRunInfer
+    with isRunInferLock:
+        if not isRunInfer:
+            isRunInfer = True
+            return True
+    return False
+
+def unlockInfer()->None:
+    '''解锁推测'''
+    global isRunInferLock,isRunInfer
+    with isRunInferLock:
+        isRunInfer=False
+
 def isMatchNumberChoise(pointX,pointY)->int|None:
     '''
     根据画布当前的坐标返回对应的可选数下标
     pointX:横坐标
     pointY:纵坐标
     '''
+    global numberChoicePoints
     for i in range(len(numberChoicePoints)):
         point = numberChoicePoints[i]
         diffX = pointX-point[0]
@@ -56,6 +89,7 @@ def isMatchControl(pointX,pointY)->int|None:
         pointX:横坐标
         pointY:纵坐标
     '''
+    global ctrlPoints
     for i in range(len(ctrlPoints)):
         point = ctrlPoints[i]
         diffX = pointX-point[0]
@@ -68,4 +102,5 @@ def hasSelect()->bool:
     '''
     判断是否有格子选中
     '''
+    global selectIndexs
     return len(selectIndexs)>0

@@ -127,14 +127,14 @@ def renderDisplayNumber(canvas:tk.Canvas,lattice:sd.Lattice):
     渲染数字
     '''
     number = lattice.getDisplay()
-    point = dt.latticePoints[lattice.getLatticeIndex()]
+    point = dt.latticePoints[lattice.getIndex()]
     if number!=0:
         color = cfg.colorFontBlock if lattice.isBlocked() else cfg.colorFont
         canvas.create_text(point[0],point[1],text=str(number),fill=color,font=cfg.fontNumber)
     if not dt.isInfo:
         return #不显示提示
     #显示提示
-    numberChoices = lattice.getChoiceNumbers()
+    numberChoices = lattice.getChoices()
     for c in range(3):
         for r in range(3):
             index = c*3+r
@@ -145,8 +145,8 @@ def renderLatticeSelect(canvas:tk.Canvas,lattice:sd.Lattice):
     '''
     渲染格子被选中效果
     '''
-    startX = cfg.canvasAlign+lattice.getColumnIndex()*cfg.latticeLength
-    startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
+    startX = cfg.canvasAlign+lattice.getColumn()*cfg.latticeLength
+    startY = cfg.canvasAlign+lattice.getRow()*cfg.latticeLength
     canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorSelectBg,outline=cfg.colorSelectLine,width=cfg.lineMainWidth)
     #渲染数字
     renderDisplayNumber(canvas,lattice)
@@ -159,8 +159,8 @@ def clearLatticeSelect(canvas:tk.Canvas,indexs:list,sudoku:sd.Sudoku):
         lattice = sudoku.getLattice(index)
         if lattice==None:
             continue
-        startX = cfg.canvasAlign+lattice.getColumnIndex()*cfg.latticeLength
-        startY = cfg.canvasAlign+lattice.getRowIndex()*cfg.latticeLength
+        startX = cfg.canvasAlign+lattice.getColumn()*cfg.latticeLength
+        startY = cfg.canvasAlign+lattice.getRow()*cfg.latticeLength
         canvas.create_rectangle(startX,startY,startX+cfg.latticeLength,startY+cfg.latticeLength,fill=cfg.colorCanvasBg,outline=cfg.colorCanvasBg,width=cfg.lineMainWidth)
         paintMethod = lattice.getPaintMethod()
         canvas.create_line(startX-1,startY,startX+cfg.latticeLength+1,startY,fill=dt.colorList[paintMethod[0]],width=dt.widthList[paintMethod[0]])
