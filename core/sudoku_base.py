@@ -216,3 +216,10 @@ def isEqualOrIn(value:int,checks:int|list):
     若checks为list，则判断value是否在list中
     '''
     return (isinstance(checks,int) and value==checks) or (isinstance(checks,list) and value in checks)
+
+def getCountValue(inList:list[int],count:int)->int|None:
+    '''返回列表中统计次数为count的值'''
+    for value in inList:
+        if inList.count(value)==count:
+            return value
+    return None

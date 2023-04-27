@@ -289,11 +289,20 @@ class Sudoku(object):
                 areaIndexs.append(areaIndex)
         return areaIndexs
 
-    def getXYWingChoice(self,combineQueue:list[int],isRow:bool)->dict:
-        xyWingInfo = {}
-        lattices = [self.getLattice(latticeIndex) for latticeIndex in combineQueue]
-        lineIndexs = [lattice.getRow() for lattice in lattices] if isRow else [lattice.getRow() for lattice in lattices]
-        xyWingInfo["mainLine"] = lineIndexs[0] if lineIndexs[0]==lineIndexs[1] or lineIndexs[0]==lineIndexs[2] else lineIndexs[1] #获得主线
+    def getXYWingInfo(self,combineQueue:list[int],isRow:bool)->dict:
+        '''获取XYWing结构的信息'''
+        info = {}
+        lattices = [self.getLattice(latticeIndex) for latticeIndex in combineQueue] #获取所有格子
+
+        indexs = [lattice.getRow() for lattice in lattices] if isRow else [lattice.getColumn() for lattice in lattices] #获得出现的行/列数
+        info["mainLine"],info["partLine"]=getCountValue(indexs,2),getCountValue(indexs,1)
+
+        areas = [lattice.getArea() for lattice in lattices] #获得出现的宫
+        info["mainArea"],info["partArea"]=getCountValue(areas,2),getCountValue(areas,2)
+
+        for lattice in lattices:
+            pass
+            # if lattice.getArea() == info["mainArea"] and lattice.getLine(isRow) ==
 
     def inferXYWing(self):
         '''使用XYWING推测'''
@@ -304,11 +313,9 @@ class Sudoku(object):
                 rowLines = isTwoRowCloumns(combineQueue,isRow=True) #判断是否分属两行
                 columnlines = isTwoRowCloumns(combineQueue,isRow=False)#判断是否分属两列
                 areaIndexs = self.isTwoAreas(combineQueue) #判断所属宫
-                if isLenEqual(areaIndexs,1): #在同一宫，属宫内组合的情况
-                    continue
-                elif isLenEqual(rowLines,1) or isLenEqual(columnlines,1): #在同一行/列，属行内组合情况
-                    continue
-                elif isLenEqual(rowLines,2) and isLenEqual(areaIndexs,2): #两行+两宫的情况
+                if isLenEqual(rowLines,2) and isLenEqual(areaIndexs,2): #两行+两宫的情况
+                    #主行主宫清除主数
+                    #副宫副行清除主数
                     pass
                 elif isLenEqual(columnlines,2) and isLenEqual(areaIndexs,2): #两列+两宫的情况
                     pass

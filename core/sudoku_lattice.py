@@ -51,6 +51,14 @@ class Lattice(object):
         diffY = pointY-dt.latticePoints[self.index][1]
         return diffX>=-cfg.latticeOffset and diffX<=cfg.latticeOffset and diffY>=-cfg.latticeOffset and diffY <=cfg.latticeOffset
 
+    def getLine(self,isRow:bool)->int:
+        '''获取所在行/列'''
+        return self.row if isRow else self.column
+
+    def getArea(self)->int:
+        '''返回格子所在宫'''
+        return self.area
+
     def getRow(self)->int:
         '''返回格子的行数'''
         return self.row
