@@ -16,6 +16,7 @@ ACTION_AREA_ONLY_IN = 11 #宫唯一推测
 ACTION_AREA_ONLY_LINE = 12 #宫唯一推测
 ACTION_AREA_COMBINE = 13 #宫组合推测
 ACTION_X_WING = 15 #X-WING推测
+ACTION_XY_WING = 16 #XY-WING推测
 
 class RecordContent(object):
     '''用于记录操作记录具体内容的数据结构'''
@@ -113,6 +114,11 @@ class RecordContent(object):
             else:
                 self.info = "【XWing】因数字[%d]在「%s」格子中形成XWING结构，清空第%d列%s格子的可选数字[%d]"%(self.valueList+1,pointList,self.extract["lineIndex"]+1,
                                 self.getIndexText(self.index),self.valueList+1)
+        elif self.isAction(ACTION_XY_WING):
+            pointList = ""
+            for value in self.extract["extraIndexs"]:
+                pointList+=self.getIndexText(value)
+            self.info = "【XYWing】因在[%s]格子中形成XYWING结构，清空%s格子的可选数字[%d]"%(pointList,self.getIndexText(self.index),self.valueList)
         print(self.info)
 
     def getIndexFull(self,index:int)->str:

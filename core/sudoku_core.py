@@ -80,7 +80,7 @@ class Sudoku(object):
             clearValues = self.getLattice(latticeIndex).clearExistChoices(existNumbers)
             if not isLenEqual(clearValues,0):
                 actionType = ACTION_ROW_LINE_BASE if isRow else ACTION_COLUMN_LINE_BASE
-                self.addRecord(actionType,lineIndex,existNumbers,{"lineIndex":lineIndex,"existNumbers":existNumbers})
+                self.addRecord(actionType,latticeIndex,existNumbers,{"lineIndex":lineIndex,"existNumbers":existNumbers})
 
     def inferLineChoiceOnly(self,lineIndex:int,isRow:bool):
         '''若该行/列某一数只出现了一次，则清空该格的其它可选数'''
@@ -111,10 +111,17 @@ class Sudoku(object):
         '''判断当前的组合是否满足n,n组合的条件，即n格内只有n个数可填'''
         combineCount = len(combineQueue)
         latticeIndexs = []
-        for combineIndex in combineQueue:
-            for latticeIndex in choicePoints[combineIndex]:
+        if len(choicePoints)<1:
+            return False
+        if isinstance(choicePoints[0],int):
+            for latticeIndex in choicePoints:
                 if latticeIndex not in latticeIndexs:
                     latticeIndexs.append(latticeIndex)
+        else:
+            for combineIndex in combineQueue:
+                for latticeIndex in choicePoints[combineIndex]:
+                    if latticeIndex not in latticeIndexs:
+                        latticeIndexs.append(latticeIndex)
         return len(latticeIndexs)==combineCount
 
     def countChoicesByLine(self,lineIndex:int,isRow:bool)->list[int]:
@@ -300,14 +307,29 @@ class Sudoku(object):
         areas = [lattice.getArea() for lattice in lattices] #获得出现的宫
         info["mainArea"],info["partArea"]=getCountValue(areas,2),getCountValue(areas,2)
 
+        choiceNumbers = []
         for lattice in lattices:
-            pass
-            # if lattice.getArea() == info["mainArea"] and lattice.getLine(isRow) ==
+            for choice in lattice.getChoices():
+                if choice not in choiceNumbers:
+                    choiceNumbers.extend(choice)
+        for lattice in lattices:
+            if lattice.getArea() == info["mainArea"] and lattice.getLine(isRow) == info["mainLine"]:
+                info["mainIndex"] = lattice.getIndex()
+                for choice in choiceNumbers:
+                    if choice not in lattice.getChoices():
+                        info["mainChoice"]=choice
+            elif lattice.getArea() == info["mainArea"] and lattice.getLine(isRow) != info["mainLine"]:
+                info["partIndex"] = lattice.getIndex()
+            else:
+                info["otherIndex"] = lattice.getIndex()
+        return info
 
     def inferXYWing(self):
         '''使用XYWING推测'''
         choicePoints = self.countChoicePointsByAll(2) #获取下标仅为2的格子
         combineQueueSet = getCombination(choicePoints,3) #获取所有3*3组合可能
+        if combineQueueSet==None:
+            return
         for combineQueue in combineQueueSet:
             if self.isCombineLattice(choicePoints,combineQueue):
                 rowLines = isTwoRowCloumns(combineQueue,isRow=True) #判断是否分属两行
@@ -316,11 +338,41 @@ class Sudoku(object):
                 if isLenEqual(rowLines,2) and isLenEqual(areaIndexs,2): #两行+两宫的情况
                     #主行主宫清除主数
                     #副宫副行清除主数
-                    pass
+                    xyInfo = self.getXYWingInfo(combineQueue,isRow=True)
+                    if toRow(xyInfo["partIndex"])==xyInfo["mainLine"]:
+                        continue #主行主宫有两格时不符合
+                    choiceValue = xyInfo["mainChoice"]
+                    for index in runLine(xyInfo["mainLine"],isRow=True):
+                        lattice = self.getLattice(index)
+                        if index!=xyInfo["mainIndex"] and lattice.getArea() == xyInfo["mainArea"]:
+                            if lattice.setChoiceEmpty(choiceValue):
+                                self.addRecord(ACTION_XY_WING,index,choiceValue,{"extractIndex":combineQueue})
+                    for index in runLine(xyInfo["partLine"],isRow=True):
+                        if lattice.getArea() == xyInfo["mainArea"]:
+                            if lattice.setChoiceEmpty(choiceValue):
+                                self.addRecord(ACTION_XY_WING,index,choiceValue,{"extractIndex":combineQueue})
                 elif isLenEqual(columnlines,2) and isLenEqual(areaIndexs,2): #两列+两宫的情况
-                    pass
+                    #主列主宫清除主数
+                    #副宫副列清除主数
+                    xyInfo = self.getXYWingInfo(combineQueue,isRow=False)
+                    if toColumn(xyInfo["partIndex"])==xyInfo["mainLine"]:
+                        continue #主行主宫有两格时不符合
+                    choiceValue = xyInfo["mainChoice"]
+                    for index in runLine(xyInfo["mainLine"],isRow=False):
+                        lattice = self.getLattice(index)
+                        if index!=xyInfo["mainIndex"] and lattice.getArea() == xyInfo["mainArea"]:
+                            if lattice.setChoiceEmpty(choiceValue):
+                                self.addRecord(ACTION_XY_WING,index,choiceValue,{"extractIndex":combineQueue})
+                    for index in runLine(choiceValue,isRow=False):
+                        if lattice.getArea() == xyInfo["mainArea"]:
+                            if lattice.setChoiceEmpty(choiceValue):
+                                self.addRecord(ACTION_XY_WING,index,choiceValue,{"extractIndex":combineQueue})
                 elif isLenEqual(columnlines,2) and isLenEqual(rowLines,2) and isLenEqual(areaIndexs,3):
-                    pass
+                    xyInfo = self.getXYWingInfo(combineQueue,isRow=True)
+                    lattice = self.getLatticeByPoint(xyInfo["partLine"],toColumn(xyInfo["otherIndex"]))
+                    choiceValue = xyInfo["mainChoice"]
+                    if lattice.setChoiceEmpty(choiceValue):
+                        self.addRecord(ACTION_XY_WING,index,choiceValue,{"extractIndex":combineQueue})
 
     def isEmptyRecord(self)->bool:
         '''判断记录是否为空'''
